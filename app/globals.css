@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/*
+ * Thème repris de mobilistore.fr (Shopify Dawn, schéma 1) :
+ * Inter 400/700, fond blanc, texte #121212, bouton principal orange #EF781B
+ * à texte noir, bouton secondaire blanc bordé, rayons 4 px, aucune ombre.
+ * Boutons en majuscules (cahier des charges §15), letter-spacing Dawn 0,06 rem.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #121212;
+  --color-ink-soft: #4a4a4a;
+  --color-ink-muted: #6b6b6b;
+  --color-paper: #ffffff;
+  --color-paper-alt: #f3f3f3;
+  --color-line: #bfbfbf;
+  --color-line-soft: #e4e4e4;
+  --color-night: #242833;
+  --color-accent: #ef781b;
+  --color-accent-hover: #d9660d;
+  --color-danger: #b90000;
+  --color-success: #2f6b3a;
+
+  --radius-ui: 4px;
+  --radius-badge: 0.4rem;
+  --tracking-button: 0.06rem;
+  --container-page: 140rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, h4 {
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(18 18 18 / 0.6);
+    outline-offset: 2px;
+  }
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-ui border px-5 py-2.5 text-xs font-medium uppercase tracking-button transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  min-height: 2.5rem;
+}
+@utility btn-primary {
+  @apply btn border-accent bg-accent text-ink hover:bg-accent-hover hover:border-accent-hover;
+}
+@utility btn-secondary {
+  @apply btn border-ink bg-paper text-ink hover:bg-paper-alt;
+}
+@utility btn-dark {
+  @apply btn border-ink bg-ink text-paper hover:bg-night;
+}
+@utility btn-danger {
+  @apply btn border-danger bg-paper text-danger hover:bg-red-50;
+}
+@utility btn-ghost {
+  @apply btn border-transparent bg-transparent text-ink hover:bg-paper-alt;
+}
+@utility btn-sm {
+  @apply px-3 py-1.5 text-[11px];
+  min-height: 2rem;
+}
+
+@utility field {
+  @apply block w-full rounded-ui border border-line bg-paper px-3 py-2 text-[15px] text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink disabled:bg-paper-alt;
+}
+@utility field-label {
+  @apply mb-1 block text-sm text-ink;
+}
+@utility field-hint {
+  @apply mt-1 text-xs text-ink-muted;
+}
+@utility field-error {
+  @apply mt-1 text-xs text-danger;
+}
+
+@utility panel {
+  @apply rounded-ui border border-line-soft bg-paper;
+}
+@utility badge {
+  @apply inline-flex items-center rounded-badge border border-ink px-2 py-0.5 text-[11px] leading-4;
+}
+@utility section-title {
+  @apply text-xs font-medium uppercase tracking-button text-ink-soft;
+}
