@@ -128,7 +128,7 @@ Seule la landing du salon envoie des e-mails (lien du formulaire + invitation d'
 
 1. Créez un compte sur [resend.com](https://resend.com) (l'offre gratuite suffit pour le salon ; quotas à vérifier sur la page tarifs).
 2. *Domains → Add Domain* : `remarq.fr`, région **Ireland (eu-west-1)**.
-3. Resend affiche les enregistrements à créer **chez le registrar de remarq.fr** (le même que pour le §4). Ils sont de cette forme ; **copiez les valeurs exactes depuis Resend**, surtout la clé DKIM, propre à votre compte :
+3. Resend affiche les enregistrements à créer dans le DNS de remarq.fr, **géré par Shopify** : *Shopify admin → Paramètres → Domaines → remarq.fr → Paramètres DNS → Ajouter un enregistrement personnalisé* (même endroit qu'au §4). Ils sont de cette forme ; **copiez les valeurs exactes depuis Resend**, surtout la clé DKIM, propre à votre compte :
 
    | Type | Nom (hôte) | Valeur | Rôle |
    |---|---|---|---|
@@ -155,7 +155,7 @@ Le domaine principal `remarq.fr` reste sur Shopify : on n'ajoute qu'un sous-doma
    | Type | Nom | Valeur |
    |---|---|---|
    | CNAME | `outil` | la valeur affichée par Vercel (de la forme `xxxx.vercel-dns-017.com` ou `cname.vercel-dns.com`) |
-2. Créez-le **là où est géré le DNS de remarq.fr** (registrar de François : demandez-lui l'accès ou envoyez-lui ce tableau). Si le domaine est géré par Shopify : *Shopify admin → Paramètres → Domaines → remarq.fr → Paramètres DNS → Ajouter un enregistrement personnalisé*. Ne modifiez pas les enregistrements `@` et `www`.
+2. Créez-le dans le DNS de remarq.fr, **géré par Shopify** : *Shopify admin → Paramètres → Domaines → remarq.fr → Paramètres DNS → Ajouter un enregistrement personnalisé*. Ne modifiez pas les enregistrements `@` et `www`.
 3. Propagation : de quelques minutes à 24 h (souvent moins d'une heure). Vercel passe le domaine en « Valid Configuration » et émet le certificat HTTPS automatiquement.
 4. Vérification : `https://outil.remarq.fr/connexion` s'ouvre avec le cadenas ; le certificat est délivré pour `outil.remarq.fr`.
 5. Ensuite seulement : `NEXT_PUBLIC_SITE_URL=https://outil.remarq.fr` (Production) → redéploiement ; Supabase → *Site URL* = `https://outil.remarq.fr` ; redirections Shopify (§5) vers le nouveau domaine.
@@ -177,5 +177,7 @@ Les QR codes imprimés pointent vers **`https://remarq.fr/d/<source>`** : une ad
 | `/d/flyer` | `https://remarq-ten.vercel.app/d/flyer` | `https://outil.remarq.fr/d/flyer` |
 | `/d/ig` | `https://remarq-ten.vercel.app/d/ig` | `https://outil.remarq.fr/d/ig` |
 | `/d/carjager` | `https://remarq-ten.vercel.app/d/carjager` | `https://outil.remarq.fr/d/carjager` |
+
+Les redirections Shopify ne fonctionnent que si la boutique **n'est pas protégée par mot de passe** (sinon le visiteur voit la page de mot de passe) et ne s'appliquent qu'aux adresses qui n'existent pas déjà dans la boutique. Elles sont permanentes (301) : un téléphone qui a déjà scanné peut garder l'ancienne cible en mémoire, d'où l'intérêt de laisser `remarq-ten.vercel.app` en service après le passage à `outil.remarq.fr`.
 
 Test : scannez chaque QR (`public/qr/*.svg`, téléchargeables dans *Réglages → QR codes*) avec un téléphone, **avant l'impression**.
