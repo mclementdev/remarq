@@ -51,3 +51,10 @@ test("visiteur venant d'Instagram : le formulaire est mis en avant", async ({ pa
   const hero = page.locator("header", { has: page.getByRole("heading", { level: 1 }) });
   await expect(hero.getByRole("link").first()).toHaveText("Remplir le formulaire maintenant");
 });
+
+test("lien court /d/carte → landing avec la source", async ({ page }) => {
+  await page.goto("/d/carte");
+  await expect(page).toHaveURL(/\/salon\?source=carte$/);
+  await page.goto("/d/inconnu");
+  await expect(page).toHaveURL(/\/salon$/);
+});

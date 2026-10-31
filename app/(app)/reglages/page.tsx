@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings";
 import { SettingsForm } from "@/components/settings/SettingsForm";
@@ -28,7 +29,10 @@ export default async function ReglagesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl">Réglages</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl">Réglages</h1>
+        <Link href="/reglages/qr" className="btn-secondary btn-sm">QR codes du salon</Link>
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="params-title" className="panel p-5">
           <h2 id="params-title" className="section-title mb-4">Paramètres</h2>

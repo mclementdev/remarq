@@ -13,7 +13,8 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:demo": "node scripts/load-demo.mjs",
-    "db:types": "supabase gen types typescript --local > lib/database.types.ts"
+    "db:types": "supabase gen types typescript --local > lib/database.types.ts",
+    "qr": "node scripts/generate-qr.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.0.0",
