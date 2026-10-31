@@ -122,6 +122,31 @@ Les variables `NEXT_PUBLIC_*` sont intégrées au moment du build : **après tou
 
 ---
 
+## 3. E-mails (Resend)
+
+Seule la landing du salon envoie des e-mails (lien du formulaire + invitation d'agenda). Aucun e-mail n'est envoyé au dépôt d'une demande.
+
+1. Créez un compte sur [resend.com](https://resend.com) (l'offre gratuite suffit pour le salon ; quotas à vérifier sur la page tarifs).
+2. *Domains → Add Domain* : `remarq.fr`, région **Ireland (eu-west-1)**.
+3. Resend affiche les enregistrements à créer **chez le registrar de remarq.fr** (le même que pour le §4). Ils sont de cette forme ; **copiez les valeurs exactes depuis Resend**, surtout la clé DKIM, propre à votre compte :
+
+   | Type | Nom (hôte) | Valeur | Rôle |
+   |---|---|---|---|
+   | TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3DQEB…` (longue clé, à copier) | DKIM |
+   | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` — priorité `10` | SPF (retours) |
+   | TXT | `send` | `v=spf1 include:amazonses.com ~all` | SPF |
+   | TXT | `_dmarc` | `v=DMARC1; p=none;` | DMARC (recommandé ; **seulement s'il n'existe pas déjà**) |
+
+   Ces enregistrements concernent les sous-domaines `send` et `resend._domainkey` : ils **ne touchent pas** au SPF ni aux MX existants de `remarq.fr` (e-mails de Shopify et boîte `contact@`).
+4. Attendez le statut **Verified** dans Resend (quelques minutes à quelques heures).
+5. *API Keys → Create API Key* : droit **Sending access**, domaine `remarq.fr`. Copiez-la dans Vercel → `RESEND_API_KEY` (Production uniquement). Ne la mettez nulle part ailleurs.
+6. `EMAIL_FROM` = `Remarq <contact@remarq.fr>`. Pour recevoir les réponses, `contact@remarq.fr` doit être une vraie boîte (ou renseignez `EMAIL_REPLY_TO` avec une adresse relevée).
+7. Redéployez, puis testez `/salon` avec votre propre adresse : vérifiez l'e-mail, l'invitation `.ics` (ouvrez-la dans votre agenda) et le lien Google Agenda. Dans Gmail, *Afficher l'original* doit indiquer **SPF : PASS** et **DKIM : PASS**.
+
+Sans `RESEND_API_KEY` (local, prévisualisations), l'e-mail est écrit dans les journaux au lieu d'être envoyé ; le lead est quand même enregistré. Les leads sont visibles dans *Supabase → Table Editor → salon_leads* (colonne `email_error` en cas d'échec d'envoi).
+
+---
+
 ## 4. Domaine `outil.remarq.fr`
 
 Le domaine principal `remarq.fr` reste sur Shopify : on n'ajoute qu'un sous-domaine.

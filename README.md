@@ -6,8 +6,11 @@ Stack : Next.js 15 + TypeScript + Tailwind · Supabase (Auth, Postgres, Storage)
 | Écran | URL | Accès |
 |---|---|---|
 | Formulaire de dépôt / confirmation | `/depot`, `/depot/merci` | public |
+| Landing du salon · liens courts des QR · confidentialité | `/salon`, `/d/<source>`, `/confidentialite` | public |
 | Connexion | `/connexion` | public |
-| Dashboard · CRM · Tous les meubles · Fiche · Réglages | `/`, `/crm`, `/meubles`, `/meubles/[id]`, `/reglages` | connecté |
+| Dashboard · CRM · Tous les meubles · Fiche · Réglages · QR codes | `/`, `/crm`, `/meubles`, `/meubles/[id]`, `/reglages`, `/reglages/qr` | connecté |
+
+**Déploiement (Supabase, Vercel, Resend, domaine, Shopify) : voir [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md).** Recette avant mise en ligne : [`docs/RECETTE.md`](docs/RECETTE.md).
 
 ---
 
@@ -40,81 +43,13 @@ Studio Supabase local : http://127.0.0.1:54423.
 
 ---
 
-## 2. Supabase (production)
+## 2. Mise en production
 
-1. Créez un projet sur [supabase.com](https://supabase.com) (région **eu-west-3 Paris** de préférence), notez le mot de passe de la base.
-2. Appliquez le schéma depuis ce dossier :
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref <ref-du-projet>
-   npx supabase db push
-   ```
-   Les migrations créent les tables, la sécurité (RLS), les deux buckets privés (`furniture-photos`, `attachments`), les 24 marques de départ et les réglages par défaut.
-3. **Désactiver les inscriptions** : *Authentication → Sign In / Providers* → décochez **Allow new users to sign up** (laissez le fournisseur *Email* activé).
-4. **URL du site** : *Authentication → URL Configuration* → Site URL = `https://outil.mobilistore.fr`.
-5. **Clés** : *Project Settings → API Keys* → copiez la clé **publishable** et la clé **secret** (voir §3).
-
-### Créer les 2 comptes
-
-*Authentication → Users → Add user → Create new user* : e-mail + mot de passe, cochez **Auto Confirm User**. Répétez pour le salarié.
-
-Le prénom affiché dans l'historique (« préparé par Martin ») est déduit de l'e-mail ; corrigez-le dans *SQL Editor* :
-
-```sql
-update profiles set first_name = 'Martin'
-where id = (select id from auth.users where email = 'martin@mobilistore.fr');
-```
+Tout est dans [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md) : nouveau projet Supabase (Paris), variables Vercel, e-mails Resend et enregistrements DNS, sous-domaine `outil.remarq.fr`, redirections Shopify `remarq.fr/d/…` des QR codes. Liste de vérifications sur mobile : [`docs/RECETTE.md`](docs/RECETTE.md).
 
 ---
 
-## 3. Variables d'environnement
-
-Modèle : `.env.example`.
-
-| Variable | Où la trouver | Exposée au navigateur ? |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | oui |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → API Keys → *publishable* | oui (protégée par la RLS) |
-| `SUPABASE_SECRET_KEY` | Supabase → API Keys → *secret* | **non** — serveur uniquement |
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys | **non** — serveur uniquement |
-| `ANTHROPIC_MODEL` | Défaut `claude-opus-5-5` ; ex. `claude-sonnet-5-5` pour réduire le coût | non |
-
----
-
-## 4. Vercel
-
-1. Poussez ce dossier sur un dépôt GitHub privé, puis *Vercel → Add New → Project → Import*. Framework : Next.js (détecté), aucune commande à changer.
-2. *Settings → Environment Variables* : ajoutez les 5 variables du §3 (environnement *Production*, et *Preview* si besoin).
-3. *Settings → Functions* : région **cdg1 (Paris)** recommandée (proche de Supabase Paris).
-4. Déployez. La génération IA peut prendre jusqu'à ~1 min : la route déclare `maxDuration = 120` (pris en charge par défaut avec Fluid Compute).
-
-> Le plan gratuit *Hobby* de Vercel est réservé à un usage non commercial ; pour un outil d'entreprise, prévoyez le plan *Pro*.
-
-### Sous-domaine `outil.mobilistore.fr`
-
-1. Vercel → *Project → Settings → Domains* → ajoutez `outil.mobilistore.fr`. Vercel affiche l'enregistrement attendu (en général **CNAME `outil` → `cname.vercel-dns.com`**).
-2. Créez cet enregistrement là où le DNS de mobilistore.fr est géré :
-   - **Domaine acheté/géré chez Shopify** : *Shopify admin → Paramètres → Domaines → mobilistore.fr → Gérer → Modifier les paramètres DNS → Ajouter un enregistrement personnalisé* → type **CNAME**, nom `outil`, valeur indiquée par Vercel.
-   - **Domaine chez un registrar (OVH, Gandi, etc.)** : zone DNS → nouvel enregistrement **CNAME** `outil` avec la même valeur.
-   - Ne touchez pas aux enregistrements existants (`@`, `www`) qui pointent vers Shopify.
-3. Attendez la validation (quelques minutes à quelques heures) ; Vercel émet le certificat HTTPS automatiquement.
-4. Sur le site Shopify, ajoutez un lien ou un bouton vers **https://outil.mobilistore.fr/depot** (ex. « Vendre un meuble »).
-
-### Données de démonstration en production (facultatif)
-
-Pour tester l'outil en ligne avant de l'utiliser pour de vrai :
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co SUPABASE_SECRET_KEY=sb_secret_xxx npm run db:demo
-# puis, pour tout retirer :
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co SUPABASE_SECRET_KEY=sb_secret_xxx npm run db:demo -- --remove
-```
-
-Les fiches de démo sont reconnaissables à leur e-mail vendeur `@demo.remarq.test` ; `--remove` ne supprime qu'elles.
-
----
-
-## 5. Choix par défaut à confirmer
+## 3. Choix par défaut à confirmer
 
 | Point | Valeur appliquée | Où le changer |
 |---|---|---|
