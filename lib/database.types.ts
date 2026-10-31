@@ -259,6 +259,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"salon_leads": {
+                  Row: {
+                    "consent": boolean,"consent_text": string,"consented_at": string,"created_at": string,"email": string,"email_error": string | null,"email_sent_at": string | null,"id": string,"ip_hash": string | null,"remind_at": string | null,"source": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consent": boolean,"consent_text": string,"consented_at"?: string,"created_at"?: string,"email": string,"email_error"?: string | null,"email_sent_at"?: string | null,"id"?: string,"ip_hash"?: string | null,"remind_at"?: string | null,"source": string
+                  }
+                  Update: {
+                    "consent"?: boolean,"consent_text"?: string,"consented_at"?: string,"created_at"?: string,"email"?: string,"email_error"?: string | null,"email_sent_at"?: string | null,"id"?: string,"ip_hash"?: string | null,"remind_at"?: string | null,"source"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"settings": {
                   Row: {
                     "key": string,"updated_at": string,"value": NonNullable<Json>
