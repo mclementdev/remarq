@@ -17,6 +17,8 @@ export const salonContent = {
   meta: {
     title: "Confiez-nous vos meubles de design",
     description: "Remarq reprend vos meubles de designer dont vous ne vous servez plus : rachat ou dépôt-vente, enlèvement organisé.",
+    /** Sous-titre de l'image de partage (réseaux sociaux, messageries). */
+    shareTagline: "Rachat ou dépôt-vente · enlèvement organisé",
   },
 
   // PROVISOIRE
