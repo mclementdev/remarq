@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getShopUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Merci" };
 
@@ -13,7 +14,7 @@ export default function MerciPage() {
       </p>
       <div className="flex flex-col items-center gap-3 pt-4 sm:flex-row sm:justify-center">
         <Link href="/depot" className="btn-primary">Déposer un autre meuble</Link>
-        <a href="https://mobilistore.fr" className="btn-secondary">Retour au site</a>
+        <a href={getShopUrl()} className="btn-secondary">Retour au site</a>
       </div>
       <p className="text-xs text-ink-muted">Vos coordonnées seront pré-remplies pour le meuble suivant.</p>
     </div>

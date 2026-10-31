@@ -29,7 +29,7 @@ export type ListingOutput = z.infer<typeof OutputSchema>;
 export type SiteListing = { title: string; body: string; missing: string[]; generatedAt: string; editedAt?: string };
 export type LbcListing = { title: string; body: string; category: string; price: string; keywords: string; generatedAt: string; editedAt?: string };
 
-const SYSTEM = `Tu rédiges les annonces de vente de Remarq, boutique française de mobilier de design d'occasion haut de gamme (site mobilistore.fr).
+const SYSTEM = `Tu rédiges les annonces de vente de Remarq, boutique française de mobilier de design d'occasion haut de gamme (site remarq.fr).
 
 Ton : sobre, précis, élégant, en français. Phrases courtes. Pas de superlatifs creux (« magnifique », « sublime », « incroyable », « pièce unique » sans justification), pas d'emoji, pas de points d'exclamation.
 

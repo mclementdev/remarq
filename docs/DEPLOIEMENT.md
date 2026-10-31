@@ -88,3 +88,69 @@ npx supabase db dump --linked -f sauvegarde-$(date +%F).sql
 npx supabase db dump --linked --data-only -f donnees-$(date +%F).sql
 ```
 Rangez ces fichiers hors du dépôt git (ils contiennent les coordonnées des vendeurs).
+
+---
+
+## 2. Vercel (projet existant)
+
+### 2.1 Variables d'environnement
+*Vercel → projet → Settings → Environment Variables*. Remplacez les anciennes valeurs Supabase et ajoutez les nouvelles :
+
+| Variable | Production | Preview | Development | Valeur |
+|---|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✓ | ✓ | ✓ | §1.7 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✓ | ✓ | ✓ | §1.7 |
+| `SUPABASE_SECRET_KEY` | ✓ | ✓ | ✓ | §1.7 — **secret** |
+| `ANTHROPIC_API_KEY` | ✓ | ✓ | | inchangée — **secret** |
+| `ANTHROPIC_MODEL` | ✓ | ✓ | | `claude-opus-5-5` |
+| `NEXT_PUBLIC_SITE_URL` | ✓ | | | `https://outil.remarq.fr` **une fois le domaine actif** (§4). Avant : ne pas la définir, l'application utilise son adresse `*.vercel.app`. Jamais en Preview. |
+| `NEXT_PUBLIC_SHOP_URL` | ✓ | ✓ | | `https://remarq.fr` (valeur par défaut si absente) |
+| `RESEND_API_KEY` | ✓ | | | §3 — **secret**. Absente en Preview : les e-mails sont journalisés, pas envoyés. |
+| `EMAIL_FROM` | ✓ | ✓ | | `Remarq <contact@remarq.fr>` |
+| `EMAIL_REPLY_TO` | ✓ | ✓ | | adresse qui reçoit les réponses (facultatif) |
+
+Les variables `NEXT_PUBLIC_*` sont intégrées au moment du build : **après toute modification, redéployez** (*Deployments → ⋯ → Redeploy*).
+
+### 2.2 Vérifications après redéploiement (sur l'adresse de production)
+- [ ] `/connexion` : connexion avec votre compte, puis celui de François.
+- [ ] `/depot` sur téléphone : demande avec 3 photos → page Merci.
+- [ ] La demande apparaît dans *CRM* en « Nouvelle demande », avec ses photos.
+- [ ] Glisser la carte vers « Accepté » : la fenêtre s'ouvre, l'historique de la fiche montre le changement avec votre prénom.
+- [ ] Fiche → *Mise en ligne* → **Télécharger les photos (ZIP)** : le fichier contient les photos.
+- [ ] `/salon` : envoi du lien à votre adresse → e-mail reçu (§3).
+- [ ] *Supabase → Authentication → Users* : aucun compte inconnu (inscriptions fermées).
+
+---
+
+## 4. Domaine `outil.remarq.fr`
+
+Le domaine principal `remarq.fr` reste sur Shopify : on n'ajoute qu'un sous-domaine.
+
+1. *Vercel → projet → Settings → Domains → Add* : `outil.remarq.fr`. Vercel affiche l'enregistrement à créer, en général :
+   | Type | Nom | Valeur |
+   |---|---|---|
+   | CNAME | `outil` | la valeur affichée par Vercel (de la forme `xxxx.vercel-dns-017.com` ou `cname.vercel-dns.com`) |
+2. Créez-le **là où est géré le DNS de remarq.fr** (registrar de François : demandez-lui l'accès ou envoyez-lui ce tableau). Si le domaine est géré par Shopify : *Shopify admin → Paramètres → Domaines → remarq.fr → Paramètres DNS → Ajouter un enregistrement personnalisé*. Ne modifiez pas les enregistrements `@` et `www`.
+3. Propagation : de quelques minutes à 24 h (souvent moins d'une heure). Vercel passe le domaine en « Valid Configuration » et émet le certificat HTTPS automatiquement.
+4. Vérification : `https://outil.remarq.fr/connexion` s'ouvre avec le cadenas ; le certificat est délivré pour `outil.remarq.fr`.
+5. Ensuite seulement : `NEXT_PUBLIC_SITE_URL=https://outil.remarq.fr` (Production) → redéploiement ; Supabase → *Site URL* = `https://outil.remarq.fr` ; redirections Shopify (§5) vers le nouveau domaine.
+
+Tant que le DNS n'est pas en place, tout fonctionne sur `https://remarq-ten.vercel.app`.
+
+---
+
+## 5. Liens courts et QR codes (Shopify)
+
+Les QR codes imprimés pointent vers **`https://remarq.fr/d/<source>`** : une adresse sous votre contrôle, valable quel que soit l'hébergement de l'outil. On peut donc imprimer avant que `outil.remarq.fr` existe.
+
+*Shopify admin → Contenu → Menus → Redirections d'URL* (ou *Navigation → Redirections d'URL*) → **Créer une redirection d'URL**, pour chaque ligne :
+
+| Rediriger depuis | Vers (avant le domaine) | Vers (après le domaine) |
+|---|---|---|
+| `/d/stand` | `https://remarq-ten.vercel.app/d/stand` | `https://outil.remarq.fr/d/stand` |
+| `/d/carte` | `https://remarq-ten.vercel.app/d/carte` | `https://outil.remarq.fr/d/carte` |
+| `/d/flyer` | `https://remarq-ten.vercel.app/d/flyer` | `https://outil.remarq.fr/d/flyer` |
+| `/d/ig` | `https://remarq-ten.vercel.app/d/ig` | `https://outil.remarq.fr/d/ig` |
+| `/d/carjager` | `https://remarq-ten.vercel.app/d/carjager` | `https://outil.remarq.fr/d/carjager` |
+
+Test : scannez chaque QR (`public/qr/*.svg`, téléchargeables dans *Réglages → QR codes*) avec un téléphone, **avant l'impression**.

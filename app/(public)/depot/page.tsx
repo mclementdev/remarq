@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DepotForm } from "@/components/depot/DepotForm";
 
-export const metadata: Metadata = { title: "Proposer un meuble" };
+export const metadata: Metadata = {
+  title: "Proposer un meuble",
+  description: "Confiez-nous vos meubles de design : décrivez votre pièce en quelques minutes, nous vous faisons une proposition.",
+  robots: { index: true, follow: true },
+};
 export const dynamic = "force-dynamic";
 
 export default async function DepotPage() {

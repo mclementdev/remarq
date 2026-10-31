@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { getSiteUrl } from "@/lib/site-url";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500", "700"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: { default: "Remarq — outil interne", template: "%s · Remarq" },
   description: "Réception, suivi et mise en ligne du mobilier Remarq.",
   robots: { index: false, follow: false },
