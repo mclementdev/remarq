@@ -45,7 +45,7 @@ Studio Supabase local : http://127.0.0.1:54423.
 
 ## 2. Mise en production
 
-Tout est dans [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md) : nouveau projet Supabase (Paris), variables Vercel, e-mails Resend et enregistrements DNS, sous-domaine `outil.remarq.fr`, redirections Shopify `remarq.fr/d/…` des QR codes. Liste de vérifications sur mobile : [`docs/RECETTE.md`](docs/RECETTE.md).
+Tout est dans [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md) : nouveau projet Supabase (Paris), variables Vercel, e-mails Resend et enregistrements DNS, sous-domaine `sell.remarq.fr`, redirections Shopify `remarq.fr/d/…` des QR codes. Liste de vérifications sur mobile : [`docs/RECETTE.md`](docs/RECETTE.md).
 
 ---
 

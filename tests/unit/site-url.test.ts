@@ -3,7 +3,7 @@ import { absoluteUrl, getShopUrl, getSiteUrl } from "@/lib/site-url";
 
 describe("URL du site", () => {
   it("priorité à NEXT_PUBLIC_SITE_URL, sans barre finale", () => {
-    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: "https://outil.remarq.fr/", VERCEL_URL: "x.vercel.app" })).toBe("https://outil.remarq.fr");
+    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: "https://sell.remarq.fr/", VERCEL_URL: "x.vercel.app" })).toBe("https://sell.remarq.fr");
   });
 
   it("en production Vercel sans DNS : l'adresse *.vercel.app de production", () => {

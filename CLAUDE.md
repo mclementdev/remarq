@@ -1,6 +1,6 @@
 # Remarq — outil interne
 
-Outil de **Remarq** (anciennement Mobilistore) : réception, suivi et mise en ligne de mobilier de design d'occasion (rachat / dépôt-vente). Servi sur `outil.remarq.fr` (en attendant : `remarq-ten.vercel.app`) ; la boutique remarq.fr reste sur Shopify, **sans connexion API** pour l'instant.
+Outil de **Remarq** (anciennement Mobilistore) : réception, suivi et mise en ligne de mobilier de design d'occasion (rachat / dépôt-vente). Servi sur `sell.remarq.fr` (en attendant : `remarq-ten.vercel.app`) ; la boutique remarq.fr reste sur Shopify, **sans connexion API** pour l'instant.
 Spécifications : `CAHIER_DES_CHARGES.md`, `EMAILS_MODELES.md`, et pour la suite `../ARCHITECTURE/BRIEF_CLAUDE_CODE_SHOPIFY.md` (hors dépôt).
 Pages publiques : `/depot` (formulaire de dépôt, **ne pas modifier sans demande explicite**), `/salon` (landing Époqu'Auto, textes dans `lib/content/salon.ts`), `/d/<source>` (liens courts des QR), `/confidentialite`.
 Déploiement : `docs/DEPLOIEMENT.md` ; recette : `docs/RECETTE.md`.

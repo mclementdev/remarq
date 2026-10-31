@@ -3,7 +3,7 @@
  * Génère les QR codes des supports du salon dans public/qr/<source>.svg.
  *
  *   npm run qr                                  encode https://remarq.fr/d/<source>
- *   QR_BASE_URL=https://outil.remarq.fr npm run qr   autre base
+ *   QR_BASE_URL=https://sell.remarq.fr npm run qr   autre base
  *
  * Noir sur blanc, marge de 4 modules (zone de silence recommandée), correction « M ».
  */
