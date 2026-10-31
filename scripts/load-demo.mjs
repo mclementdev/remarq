@@ -4,6 +4,7 @@
  *
  *   npm run db:demo            charge ~36 meubles fictifs sur 12 mois
  *   npm run db:demo -- --remove  supprime toutes les données de démo
+ *   (refuse une base non locale, sauf --allow-remote pour une base de test)
  *
  * Toutes les fiches de démo ont un e-mail vendeur en « @demo.remarq.test » :
  * c'est ce marqueur qui permet de les retirer sans toucher aux vraies données.
@@ -29,7 +30,17 @@ function env(name) {
   throw new Error(`Variable ${name} manquante.`);
 }
 
-const supabase = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SECRET_KEY"), { auth: { persistSession: false } });
+const SUPABASE_URL = env("NEXT_PUBLIC_SUPABASE_URL");
+const isLocal = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?/.test(SUPABASE_URL);
+if (!isLocal && !process.argv.includes("--allow-remote")) {
+  console.error(
+    `Refusé : ${SUPABASE_URL} n'est pas une base locale. Pas de données de démo en production.\n` +
+      "Pour une base de test distante, relancez avec --allow-remote.",
+  );
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, env("SUPABASE_SECRET_KEY"), { auth: { persistSession: false } });
 
 async function remove() {
   const { data: rows } = await supabase.from("furnitures").select("id").like("seller_email", `%@${DEMO_DOMAIN}`);
