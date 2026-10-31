@@ -168,7 +168,7 @@ Tant que le DNS n'est pas en place, tout fonctionne sur `https://remarq-ten.verc
 
 Les QR codes imprimés pointent vers **`https://remarq.fr/d/<source>`** : une adresse sous votre contrôle, valable quel que soit l'hébergement de l'outil. On peut donc imprimer avant que `outil.remarq.fr` existe.
 
-*Shopify admin → Contenu → Menus → Redirections d'URL* (ou *Navigation → Redirections d'URL*) → **Créer une redirection d'URL**, pour chaque ligne :
+*Shopify admin → Contenu → Menus → Redirections d'URL* → **Importer** le fichier `docs/shopify/redirections-vercel.csv` (puis `redirections-outil.csv` après le §4, en cochant le remplacement des redirections existantes), ou **Créer une redirection d'URL** pour chaque ligne :
 
 | Rediriger depuis | Vers (avant le domaine) | Vers (après le domaine) |
 |---|---|---|
