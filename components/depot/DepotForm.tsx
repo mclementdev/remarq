@@ -1,92 +1,96 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import clsx from "clsx";
-import { PhotoTile, type PhotoItem } from "./PhotoTile";
+import { StepHeader } from "./StepHeader";
+import { PieceCard } from "./PieceCard";
+import { Field, aria, ErrorText, Req } from "./Field";
+import type { PhotoItem } from "./PhotoTile";
+import { EMPTY_PICKUP, EMPTY_SELLER, emptyPiece, parseNumber, type PickupState, type PieceState, type SellerState } from "./types";
 import { uploadDepotImage } from "@/lib/image";
-import { CATEGORY_LABELS, CONDITION_LABELS, FLOOR_LABELS, CERTIFICATION_TEXT } from "@/lib/labels";
-import { MAX_CERTIFICATES, MAX_PHOTOS, MIN_PHOTOS, depotSchema } from "@/lib/validation/depot";
+import { createLimiter } from "@/lib/limit";
+import { CERTIFICATION_TEXT, FLOOR_LABELS } from "@/lib/labels";
+import { CONTACT_CONSENT_TEXT, depotContent as c } from "@/lib/content/depot";
+import { PHONE_COUNTRIES } from "@/lib/depot/phone";
+import { MAX_PIECES, depotSchema, pickupStepSchema, pieceSchema, sellerStepSchema } from "@/lib/validation/depot";
 
-type Brand = { id: string; name: string };
+const DRAFT_KEY = "remarq-depot-brouillon-v2";
+export const SELLER_KEY = "remarq-depot-vendeur-v2";
 
-const OTHER = "__other";
-const DRAFT_KEY = "remarq-depot-brouillon";
-export const SELLER_KEY = "remarq-depot-vendeur";
+/** Deux photos compressées et envoyées à la fois : évite de saturer un téléphone. */
+const uploadQueue = createLimiter(2);
 
-const GUIDED_SLOTS = [
-  { slot: "front", label: "Face" },
-  { slot: "back", label: "Dos" },
-  { slot: "side", label: "Profil" },
-  { slot: "detail", label: "Détail", hint: "signature / étiquette" },
-  { slot: "defect", label: "Défaut", hint: "s'il y en a" },
-] as const;
+type Draft = { step: number; seller: SellerState; pickup: PickupState; pieces: Omit<PieceState, "photos">[] };
 
-const EMPTY_FIELDS = {
-  name: "",
-  category: "",
-  brand: "",
-  brandOther: "",
-  designer: "",
-  manufactureYear: "",
-  description: "",
-  widthCm: "",
-  depthCm: "",
-  heightCm: "",
-  materials: "",
-  condition: "",
-  defects: "",
-  purchaseYear: "",
-  originalPrice: "",
-  desiredPrice: "",
-  floor: "",
-  hasElevator: "",
-  accessNotes: "",
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  street: "",
-  postalCode: "",
-  city: "",
-};
-type Fields = typeof EMPTY_FIELDS;
-type FieldName = keyof Fields;
-const SELLER_FIELDS: FieldName[] = ["firstName", "lastName", "email", "phone", "street", "postalCode", "city", "floor", "hasElevator", "accessNotes"];
+const piecePayload = (p: PieceState) => ({
+  brand: p.brand,
+  model: p.model,
+  itemType: p.itemType || undefined,
+  quantity: p.quantity === "" ? undefined : Number(p.quantity),
+  description: p.description,
+  purchaseYear: p.purchaseYear,
+  originalPrice: parseNumber(p.originalPrice),
+  conditionScore: p.conditionScore,
+  conditionDetails: p.conditionDetails,
+  photos: p.photos.filter((ph) => ph.status === "done").map((ph) => ({ path: ph.path!, thumbPath: ph.thumbPath!, slot: ph.slot })),
+});
 
-/** "1 200,50" → 1200.5 ; vide → null ; invalide → NaN (rejeté par Zod). */
-function parseNumber(v: string): number | null {
-  const s = v.replace(/\s/g, "").replace(",", ".");
-  if (!s) return null;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
+const pickupPayload = (p: PickupState, certified: boolean) => ({
+  ...p,
+  floor: p.floor || null,
+  hasElevator: p.hasElevator === "" ? null : p.hasElevator === "yes",
+  certified,
+});
+
+/** Chemin Zod (« seller.phone », « pieces.0.brand ») → clé d'erreur du formulaire. */
+function errorKey(path: PropertyKey[]): string {
+  const [head, ...rest] = path.map(String);
+  if (head === "seller" || head === "pickup") return rest[0] ?? head;
+  return [head, ...rest.slice(0, 2)].join(".");
 }
 
-function newKey() {
-  return crypto.randomUUID();
+function stepOfError(key: string): number {
+  if (key.startsWith("pieces")) return 2;
+  if (["street", "postalCode", "city", "floor", "hasElevator", "accessNotes", "certified"].includes(key)) return 3;
+  return 1;
 }
 
-export function DepotForm({ brands }: { brands: Brand[] }) {
+export function DepotForm({ brands, source = null }: { brands: { id: string; name: string }[]; source?: string | null }) {
   const router = useRouter();
+  const brandListId = useId();
   const [submissionId] = useState(() => crypto.randomUUID());
-  const [fields, setFields] = useState<Fields>(EMPTY_FIELDS);
+  const [step, setStep] = useState(1);
+  const [seller, setSeller] = useState<SellerState>(EMPTY_SELLER);
+  const [pieces, setPieces] = useState<PieceState[]>(() => [emptyPiece()]);
+  const [pickup, setPickup] = useState<PickupState>(EMPTY_PICKUP);
   const [certified, setCertified] = useState(false);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [certificates, setCertificates] = useState<PhotoItem[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const summaryRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const hasInteracted = useRef(false);
 
-  // Brouillon (champs texte uniquement) + coordonnées d'un dépôt précédent.
+  // ------------------------------------------------------------ brouillon
   useEffect(() => {
     try {
-      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null");
-      const seller = JSON.parse(sessionStorage.getItem(SELLER_KEY) ?? "null");
-      setFields((f) => ({ ...f, ...(seller ?? {}), ...(draft ?? {}) }));
+      const draft: Draft | null = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null");
+      const previous: Partial<Pick<Draft, "seller" | "pickup">> | null = JSON.parse(sessionStorage.getItem(SELLER_KEY) ?? "null");
+      if (draft) {
+        setSeller({ ...EMPTY_SELLER, ...draft.seller });
+        setPickup({ ...EMPTY_PICKUP, ...draft.pickup });
+        if (draft.pieces?.length) setPieces(draft.pieces.slice(0, MAX_PIECES).map((p) => ({ ...emptyPiece(), ...p, photos: [] })));
+        // Les photos ne sont pas gardées : on revient au plus à l'étape des pièces.
+        setStep(Math.min(Math.max(draft.step ?? 1, 1), 2));
+      } else if (previous) {
+        setSeller({ ...EMPTY_SELLER, ...previous.seller });
+        setPickup({ ...EMPTY_PICKUP, ...previous.pickup });
+      }
     } catch {
-      // stockage indisponible : on part d'un formulaire vide
+      // stockage indisponible : formulaire vide
     }
     setDraftLoaded(true);
   }, []);
@@ -95,126 +99,160 @@ export function DepotForm({ brands }: { brands: Brand[] }) {
     if (!draftLoaded) return;
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(fields));
+        const draft: Draft = { step, seller, pickup, pieces: pieces.map(({ photos: _photos, ...rest }) => rest) };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch {}
     }, 400);
     return () => clearTimeout(t);
-  }, [fields, draftLoaded]);
+  }, [step, seller, pickup, pieces, draftLoaded]);
 
-  const set = (name: FieldName) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setFields((f) => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors(({ [name]: _removed, ...rest }) => rest);
+  const clearError = (key: string) => {
+    if (errors[key]) setErrors(({ [key]: _removed, ...rest }) => rest);
   };
 
-  // ------------------------------------------------------------------ photos
+  // ------------------------------------------------------------ pièces et photos
+  const updatePiece = (key: string, patch: Partial<PieceState>) => {
+    setPieces((list) => list.map((p) => (p.key === key ? { ...p, ...patch } : p)));
+    const index = pieces.findIndex((p) => p.key === key);
+    Object.keys(patch).forEach((k) => clearError(`pieces.${index}.${k}`));
+  };
+
+  const updatePhoto = useCallback((pieceKey: string, photoKey: string, patch: Partial<PhotoItem>) => {
+    setPieces((list) =>
+      list.map((p) => (p.key === pieceKey ? { ...p, photos: p.photos.map((ph) => (ph.key === photoKey ? { ...ph, ...patch } : ph)) } : p)),
+    );
+  }, []);
+
   const startUpload = useCallback(
-    (item: PhotoItem, setList: React.Dispatch<React.SetStateAction<PhotoItem[]>>) => {
-      const update = (patch: Partial<PhotoItem>) =>
-        setList((list) => list.map((p) => (p.key === item.key ? { ...p, ...patch } : p)));
-      update({ status: "uploading", progress: 0, error: undefined });
-      uploadDepotImage(item.file, submissionId, (progress) => update({ progress }))
-        .then(({ path, thumbPath }) => update({ status: "done", progress: 1, path, thumbPath }))
-        .catch((err: Error) => update({ status: "error", error: err.message }));
+    (pieceKey: string, item: PhotoItem) => {
+      updatePhoto(pieceKey, item.key, { status: "uploading", progress: 0, error: undefined });
+      uploadQueue(() => uploadDepotImage(item.file, submissionId, (progress) => updatePhoto(pieceKey, item.key, { progress })))
+        .then(({ path, thumbPath }) => updatePhoto(pieceKey, item.key, { status: "done", progress: 1, path, thumbPath }))
+        .catch((err: Error) => updatePhoto(pieceKey, item.key, { status: "error", error: err.message }));
     },
-    [submissionId],
+    [submissionId, updatePhoto],
   );
 
-  const addPhoto = (slot: PhotoItem["slot"], file: File, kind: "photo" | "certificate" = "photo") => {
-    const item: PhotoItem = { key: newKey(), slot, file, previewUrl: URL.createObjectURL(file), status: "uploading", progress: 0 };
-    const setList = kind === "photo" ? setPhotos : setCertificates;
-    setList((list) => [...list, item]);
-    setErrors(({ photos: _p, certificates: _c, ...rest }) => rest);
-    startUpload(item, setList);
+  const addPhotos = (pieceKey: string, index: number, files: File[]) => {
+    const items: PhotoItem[] = files.map((file) => ({
+      key: crypto.randomUUID(),
+      slot: "other",
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: "uploading",
+      progress: 0,
+    }));
+    setPieces((list) => list.map((p) => (p.key === pieceKey ? { ...p, photos: [...p.photos, ...items] } : p)));
+    clearError(`pieces.${index}.photos`);
+    items.forEach((item) => startUpload(pieceKey, item));
   };
 
-  const removePhoto = (key: string, kind: "photo" | "certificate" = "photo") => {
-    const setList = kind === "photo" ? setPhotos : setCertificates;
-    setList((list) => {
-      const found = list.find((p) => p.key === key);
-      if (found) URL.revokeObjectURL(found.previewUrl);
+  const removePhoto = (pieceKey: string, photoKey: string) => {
+    setPieces((list) =>
+      list.map((p) => {
+        if (p.key !== pieceKey) return p;
+        const removed = p.photos.find((ph) => ph.key === photoKey);
+        if (removed) URL.revokeObjectURL(removed.previewUrl);
+        return { ...p, photos: p.photos.filter((ph) => ph.key !== photoKey) };
+      }),
+    );
+  };
+
+  const removePiece = (key: string) => {
+    setPieces((list) => {
+      list.find((p) => p.key === key)?.photos.forEach((ph) => URL.revokeObjectURL(ph.previewUrl));
       return list.filter((p) => p.key !== key);
     });
+    setErrors({});
   };
 
-  const retryPhoto = (item: PhotoItem, kind: "photo" | "certificate" = "photo") =>
-    startUpload(item, kind === "photo" ? setPhotos : setCertificates);
+  const addPiece = () => {
+    const piece = emptyPiece();
+    setPieces((list) => [...list, piece]);
+    requestAnimationFrame(() => document.getElementById(`piece-${pieces.length}-brand`)?.focus());
+  };
 
-  const extraPhotos = photos.filter((p) => p.slot === "other");
-  const photoCount = photos.length;
-  const canAddPhoto = photoCount < MAX_PHOTOS;
-  const uploading = [...photos, ...certificates].some((p) => p.status === "uploading");
-  const failed = [...photos, ...certificates].some((p) => p.status === "error");
+  // ------------------------------------------------------------ navigation
+  const scrollToTop = () => {
+    requestAnimationFrame(() => {
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      headingRef.current?.focus({ preventScroll: true });
+    });
+  };
 
-  // ------------------------------------------------------------------ envoi
-  const payload = useMemo(
-    () => ({
-      submissionId,
-      name: fields.name,
-      category: fields.category || undefined,
-      brandId: fields.brand && fields.brand !== OTHER ? fields.brand : null,
-      brandOther: fields.brand === OTHER ? fields.brandOther : null,
-      designer: fields.designer,
-      manufactureYear: fields.manufactureYear,
-      description: fields.description,
-      widthCm: parseNumber(fields.widthCm),
-      depthCm: parseNumber(fields.depthCm),
-      heightCm: parseNumber(fields.heightCm),
-      materials: fields.materials,
-      condition: fields.condition || undefined,
-      defects: fields.defects,
-      purchaseYear: fields.purchaseYear,
-      originalPrice: parseNumber(fields.originalPrice),
-      desiredPrice: parseNumber(fields.desiredPrice),
-      floor: fields.floor || null,
-      hasElevator: fields.hasElevator === "" ? null : fields.hasElevator === "yes",
-      accessNotes: fields.accessNotes,
-      firstName: fields.firstName,
-      lastName: fields.lastName,
-      email: fields.email.trim(),
-      phone: fields.phone,
-      street: fields.street,
-      postalCode: fields.postalCode,
-      city: fields.city,
-      certified,
-      photos: photos.filter((p) => p.status === "done").map((p) => ({ path: p.path!, thumbPath: p.thumbPath!, slot: p.slot })),
-      certificates: certificates
-        .filter((p) => p.status === "done")
-        .map((p) => ({ path: p.path!, thumbPath: p.thumbPath!, slot: "other" as const })),
-    }),
-    [fields, certified, photos, certificates, submissionId],
-  );
+  const goTo = (n: number) => {
+    hasInteracted.current = true;
+    setStep(n);
+    setFormError(null);
+    scrollToTop();
+  };
 
-  const showErrors = (map: Record<string, string>, message: string) => {
+  const fail = (map: Record<string, string>, message: string, target?: number) => {
     setErrors(map);
     setFormError(message);
+    if (target && target !== step) setStep(target);
     requestAnimationFrame(() => {
-      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      summaryRef.current?.focus();
+      const first = Object.keys(map)[0];
+      const el = first ? document.getElementById(first.startsWith("pieces.") ? `piece-${first.split(".")[1]}-${first.split(".")[2]}` : first) : null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      } else {
+        scrollToTop();
+      }
     });
+  };
+
+  const issuesToMap = (issues: { path: PropertyKey[]; message: string }[], prefix: PropertyKey[] = []) => {
+    const map: Record<string, string> = {};
+    for (const issue of issues) map[errorKey([...prefix, ...issue.path])] ??= issue.message;
+    return map;
+  };
+
+  const nextFromSeller = () => {
+    const parsed = sellerStepSchema.safeParse(seller);
+    if (!parsed.success) return fail(issuesToMap(parsed.error.issues), "Merci de compléter les champs signalés.");
+    setErrors({});
+    goTo(2);
+  };
+
+  const photosPending = pieces.some((p) => p.photos.some((ph) => ph.status === "uploading"));
+  const photosFailed = pieces.some((p) => p.photos.some((ph) => ph.status === "error"));
+
+  const nextFromPieces = () => {
+    if (photosPending) return fail({}, "Patientez : des photos sont encore en cours d'envoi.");
+    if (photosFailed) {
+      const i = pieces.findIndex((p) => p.photos.some((ph) => ph.status === "error"));
+      return fail({ [`pieces.${i}.photos`]: "Une photo n'a pas pu être envoyée : réessayez ou retirez-la." }, "Une photo n'a pas pu être envoyée.");
+    }
+    const map: Record<string, string> = {};
+    pieces.forEach((p, i) => {
+      const parsed = pieceSchema.safeParse(piecePayload(p));
+      if (!parsed.success) Object.assign(map, issuesToMap(parsed.error.issues, ["pieces", i]));
+    });
+    if (Object.keys(map).length) return fail(map, "Merci de compléter les champs signalés.");
+    setErrors({});
+    goTo(3);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploading) {
-      showErrors({}, "Patientez : des photos sont encore en cours d'envoi.");
-      return;
-    }
-    if (failed) {
-      showErrors({ photos: "Une photo n'a pas pu être envoyée : réessayez ou retirez-la." }, "Une photo n'a pas pu être envoyée.");
-      return;
-    }
-    const parsed = depotSchema.safeParse(payload);
+    if (step === 1) return nextFromSeller();
+    if (step === 2) return nextFromPieces();
+
+    const pickupCheck = pickupStepSchema.safeParse(pickupPayload(pickup, certified));
+    if (!pickupCheck.success) return fail(issuesToMap(pickupCheck.error.issues), "Merci de compléter les champs signalés.");
+
+    const parsed = depotSchema.safeParse({
+      submissionId,
+      source,
+      seller,
+      pieces: pieces.map(piecePayload),
+      pickup: pickupPayload(pickup, certified),
+    });
     if (!parsed.success) {
-      const map: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0] ?? "form");
-        const field = key === "brandId" && fields.brand === OTHER ? "brandOther" : key === "brandId" ? "brand" : key;
-        map[field] ??= issue.message;
-      }
-      if (map.widthCm || map.depthCm || map.heightCm) map.dimensions = "Dimensions invalides (nombres en cm).";
-      showErrors(map, "Merci de compléter les champs signalés ci-dessous.");
-      return;
+      const map = issuesToMap(parsed.error.issues);
+      return fail(map, "Merci de compléter les champs signalés.", stepOfError(Object.keys(map)[0] ?? ""));
     }
 
     setSubmitting(true);
@@ -228,268 +266,202 @@ export function DepotForm({ brands }: { brands: Brand[] }) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         const map: Record<string, string> = {};
-        for (const issue of body.issues ?? []) map[String(issue.path).split(".")[0]] ??= issue.message;
-        showErrors(map, body.error ?? "L'envoi a échoué. Réessayez dans un instant.");
+        for (const issue of body.issues ?? []) map[errorKey(String(issue.path).split("."))] ??= issue.message;
         setSubmitting(false);
-        return;
+        return fail(map, body.error ?? "L'envoi a échoué. Réessayez dans un instant.", stepOfError(Object.keys(map)[0] ?? "street"));
       }
       try {
         localStorage.removeItem(DRAFT_KEY);
-        const seller = Object.fromEntries(SELLER_FIELDS.map((k) => [k, fields[k]]));
-        sessionStorage.setItem(SELLER_KEY, JSON.stringify(seller));
+        sessionStorage.setItem(SELLER_KEY, JSON.stringify({ seller, pickup }));
       } catch {}
-      router.push("/depot/merci");
+      router.push(pieces.length > 1 ? `/depot/merci?pieces=${pieces.length}` : "/depot/merci");
     } catch {
-      showErrors({}, "Connexion impossible. Vérifiez votre réseau puis réessayez.");
       setSubmitting(false);
+      fail({}, "Connexion impossible. Vérifiez votre réseau puis réessayez.");
     }
   };
 
-  // ------------------------------------------------------------------ rendu
-  const err = (name: string) => errors[name];
-  const describedBy = (name: string) => (errors[name] ? `${name}-error` : undefined);
-  const ErrorText = ({ name }: { name: string }) =>
-    errors[name] ? <p id={`${name}-error`} className="field-error">{errors[name]}</p> : null;
-  const Req = () => <span className="text-accent" aria-hidden> *</span>;
+  // ------------------------------------------------------------ rendu
+  const sellerInput = (name: keyof SellerState) => ({
+    value: seller[name],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setSeller((s) => ({ ...s, [name]: e.target.value }));
+      clearError(name);
+    },
+  });
+  const pickupInput = (name: keyof PickupState) => ({
+    value: pickup[name],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      setPickup((s) => ({ ...s, [name]: e.target.value }));
+      clearError(name);
+    },
+  });
 
-  const textInput = (name: FieldName, label: string, opts: { required?: boolean; type?: string; autoComplete?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]; placeholder?: string } = {}) => (
-    <div>
-      <label htmlFor={name} className="field-label">
-        {label}
-        {opts.required && <Req />}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={opts.type ?? "text"}
-        autoComplete={opts.autoComplete}
-        inputMode={opts.inputMode}
-        placeholder={opts.placeholder}
-        value={fields[name]}
-        onChange={set(name)}
-        aria-invalid={!!err(name)}
-        aria-describedby={describedBy(name)}
-        aria-required={opts.required}
-        className={clsx("field", err(name) && "border-danger")}
-      />
-      <ErrorText name={name} />
-    </div>
-  );
+  const titles = [c.seller.title, c.pieces.title, c.pickup.title];
+  const intros = [c.seller.intro, c.pieces.intro, c.pickup.intro];
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-12">
-      <div ref={summaryRef} tabIndex={-1} aria-live="assertive" className="outline-none">
-        {formError && (
-          <div role="alert" className="rounded-ui border border-danger bg-red-50 p-4 text-sm text-danger">
-            {formError}
+    <div ref={topRef} className="scroll-mt-4 overflow-hidden rounded-ui border border-line bg-paper">
+      <StepHeader step={step} />
+      <form onSubmit={onSubmit} noValidate className="space-y-8 p-4 sm:p-6">
+        <div className="space-y-2">
+          <p className="text-sm text-ink-soft">Étape {step} sur 3</p>
+          <h2 ref={headingRef} tabIndex={-1} className="text-2xl outline-none sm:text-3xl">{titles[step - 1]}</h2>
+          <p className="text-ink-soft">{intros[step - 1]}</p>
+        </div>
+
+        <div aria-live="assertive">
+          {formError && (
+            <div role="alert" className="rounded-ui border border-danger bg-red-50 p-4 text-sm text-danger">{formError}</div>
+          )}
+        </div>
+
+        {/* ---------------------------------------------------------- 1 */}
+        {step === 1 && (
+          <div className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="firstName" label="Prénom" required error={errors.firstName}>
+                <input {...aria("firstName", errors.firstName)} autoComplete="given-name" {...sellerInput("firstName")} />
+              </Field>
+              <Field id="lastName" label="Nom" optional>
+                <input {...aria("lastName")} autoComplete="family-name" {...sellerInput("lastName")} />
+              </Field>
+            </div>
+            <Field id="email" label="E-mail" required error={errors.email}>
+              <input {...aria("email", errors.email)} type="email" inputMode="email" autoComplete="email" placeholder="vous@exemple.fr" {...sellerInput("email")} />
+            </Field>
+            <div>
+              <label htmlFor="phone" className="field-label">Téléphone<Req /></label>
+              <div className="flex">
+                <label htmlFor="phoneDial" className="sr-only">Indicatif</label>
+                <select id="phoneDial" autoComplete="tel-country-code" className="field w-auto shrink-0 rounded-r-none border-r-0 pr-7" {...sellerInput("phoneDial")}>
+                  {PHONE_COUNTRIES.map((p) => <option key={p.code} value={p.dial}>{p.flag} {p.dial}</option>)}
+                </select>
+                <input
+                  {...aria("phone", errors.phone, "phone-hint")}
+                  type="tel"
+                  autoComplete="tel-national"
+                  placeholder="6 12 34 56 78"
+                  className={clsx("field min-w-0 flex-1 rounded-l-none", errors.phone && "border-danger")}
+                  {...sellerInput("phone")}
+                />
+              </div>
+              <p id="phone-hint" className="field-hint">{c.seller.phoneHint}</p>
+              <ErrorText id="phone" error={errors.phone} />
+            </div>
           </div>
         )}
-      </div>
 
-      {/* ---------------------------------------------------------- A */}
-      <section aria-labelledby="sec-meuble" className="space-y-6">
-        <h2 id="sec-meuble" className="text-xl">1. Le meuble</h2>
-
-        <fieldset>
-          <legend className="field-label">
-            Photos<Req /> <span className="text-ink-muted">({MIN_PHOTOS} minimum, {MAX_PHOTOS} maximum)</span>
-          </legend>
-          <p className="field-hint mb-3">
-            Photographiez le meuble en entier, de face, de dos et de profil, puis un détail de la signature ou de l&apos;étiquette, et les éventuels défauts. Lumière du jour de préférence.
-          </p>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5" id="photos">
-            {GUIDED_SLOTS.map(({ slot, label, ...rest }) => {
-              const item = photos.find((p) => p.slot === slot);
-              return (
-                <PhotoTile
-                  key={slot}
-                  label={label}
-                  hint={"hint" in rest ? rest.hint : undefined}
-                  item={item}
-                  disabled={!item && !canAddPhoto}
-                  onSelect={(f) => addPhoto(slot, f)}
-                  onRetry={() => item && retryPhoto(item)}
-                  onRemove={() => item && removePhoto(item.key)}
-                />
-              );
-            })}
-            {extraPhotos.map((item, i) => (
-              <PhotoTile
-                key={item.key}
-                label={`Photo ${i + 1}`}
-                item={item}
-                onSelect={() => {}}
-                onRetry={() => retryPhoto(item)}
-                onRemove={() => removePhoto(item.key)}
+        {/* ---------------------------------------------------------- 2 */}
+        {step === 2 && (
+          <div className="space-y-5">
+            <datalist id={brandListId}>
+              {brands.map((b) => <option key={b.id} value={b.name} />)}
+              <option value="Inconnu" />
+            </datalist>
+            {pieces.map((p, i) => (
+              <PieceCard
+                key={p.key}
+                index={i}
+                piece={p}
+                brandListId={brandListId}
+                errors={errors}
+                canRemove={pieces.length > 1}
+                onChange={(patch) => updatePiece(p.key, patch)}
+                onRemove={() => removePiece(p.key)}
+                onAddPhotos={(files) => addPhotos(p.key, i, files)}
+                onRetryPhoto={(item) => startUpload(p.key, item)}
+                onRemovePhoto={(key) => removePhoto(p.key, key)}
               />
             ))}
-            {canAddPhoto && (
-              <PhotoTile label="Ajouter une photo" onSelect={(f) => addPhoto("other", f)} onRetry={() => {}} onRemove={() => {}} />
+            {pieces.length < MAX_PIECES && (
+              <button type="button" onClick={addPiece} className="flex w-full items-center justify-center gap-2 rounded-ui border border-dashed border-line px-4 py-5 hover:border-ink hover:bg-paper-alt">
+                <span aria-hidden className="text-xl leading-none">+</span> {c.pieces.addPiece}
+              </button>
             )}
+            <p className="text-sm text-ink-soft">{c.pieces.manyPieces}</p>
           </div>
-          <p className={clsx("mt-3 text-sm", photoCount < MIN_PHOTOS ? "text-ink-soft" : "text-success")} aria-live="polite">
-            {photoCount} / {MAX_PHOTOS} photo{photoCount > 1 ? "s" : ""}
-            {photoCount < MIN_PHOTOS && ` — encore ${MIN_PHOTOS - photoCount} minimum`}
-          </p>
-          <ErrorText name="photos" />
-        </fieldset>
+        )}
 
-        {textInput("name", "Nom / modèle du meuble", { required: true, placeholder: "ex. Fauteuil Safari" })}
-
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div>
-            <label htmlFor="category" className="field-label">Catégorie<Req /></label>
-            <select id="category" value={fields.category} onChange={set("category")} aria-invalid={!!err("category")} aria-describedby={describedBy("category")} className={clsx("field", err("category") && "border-danger")}>
-              <option value="">Choisir…</option>
-              {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-            <ErrorText name="category" />
-          </div>
-          <div>
-            <label htmlFor="brand" className="field-label">Marque<Req /></label>
-            <select id="brand" value={fields.brand} onChange={set("brand")} aria-invalid={!!err("brand")} aria-describedby={describedBy("brand")} className={clsx("field", err("brand") && "border-danger")}>
-              <option value="">Choisir…</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              <option value={OTHER}>Autre (préciser)</option>
-            </select>
-            <ErrorText name="brand" />
-          </div>
-        </div>
-        {fields.brand === OTHER && textInput("brandOther", "Précisez la marque", { required: true })}
-
-        <div className="grid gap-6 sm:grid-cols-2">
-          {textInput("designer", "Designer")}
-          {textInput("manufactureYear", "Année approximative de fabrication", { placeholder: "ex. 1970" })}
-        </div>
-
-        <div>
-          <label htmlFor="description" className="field-label">Description rapide<Req /></label>
-          <textarea id="description" rows={4} value={fields.description} onChange={set("description")} aria-invalid={!!err("description")} aria-describedby={describedBy("description")} className={clsx("field", err("description") && "border-danger")} />
-          <ErrorText name="description" />
-        </div>
-
-        <fieldset>
-          <legend className="field-label">Dimensions en cm</legend>
-          <div className="grid grid-cols-3 gap-3">
-            {(["widthCm", "depthCm", "heightCm"] as const).map((n, i) => (
-              <div key={n}>
-                <label htmlFor={n} className="mb-1 block text-xs text-ink-soft">{["Largeur", "Profondeur", "Hauteur"][i]}</label>
-                <input id={n} inputMode="decimal" value={fields[n]} onChange={set(n)} aria-invalid={!!err(n)} className={clsx("field", err(n) && "border-danger")} />
-              </div>
-            ))}
-          </div>
-          <ErrorText name="dimensions" />
-        </fieldset>
-
-        {textInput("materials", "Matières / couleur", { placeholder: "ex. cuir blanc, structure chrome" })}
-
-        <div>
-          <label htmlFor="condition" className="field-label">État<Req /></label>
-          <select id="condition" value={fields.condition} onChange={set("condition")} aria-invalid={!!err("condition")} aria-describedby={describedBy("condition")} className={clsx("field", err("condition") && "border-danger")}>
-            <option value="">Choisir…</option>
-            {Object.entries(CONDITION_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-          <ErrorText name="condition" />
-        </div>
-
-        <div>
-          <label htmlFor="defects" className="field-label">Défauts éventuels (précisions)</label>
-          <textarea id="defects" rows={3} value={fields.defects} onChange={set("defects")} className="field" />
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-3">
-          {textInput("purchaseYear", "Année d'achat", { inputMode: "numeric" })}
-          {textInput("originalPrice", "Prix payé à l'origine (€)", { inputMode: "decimal" })}
-          {textInput("desiredPrice", "Prix souhaité (€)", { inputMode: "decimal" })}
-        </div>
-        <p className="field-hint -mt-4">Les prix sont facultatifs : nous vous ferons ensuite nos propositions.</p>
-
-        <fieldset>
-          <legend className="field-label">Certificat d&apos;authenticité <span className="text-ink-muted">(facultatif, 1 à {MAX_CERTIFICATES} images)</span></legend>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {certificates.map((item, i) => (
-              <PhotoTile key={item.key} label={`Certificat ${i + 1}`} item={item} onSelect={() => {}} onRetry={() => retryPhoto(item, "certificate")} onRemove={() => removePhoto(item.key, "certificate")} />
-            ))}
-            {certificates.length < MAX_CERTIFICATES && (
-              <PhotoTile label="Certificat" onSelect={(f) => addPhoto("other", f, "certificate")} onRetry={() => {}} onRemove={() => {}} />
-            )}
-          </div>
-          <ErrorText name="certificates" />
-        </fieldset>
-      </section>
-
-      {/* ---------------------------------------------------------- B */}
-      <section aria-labelledby="sec-enlevement" className="space-y-6">
-        <h2 id="sec-enlevement" className="text-xl">2. Enlèvement</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div>
-            <label htmlFor="floor" className="field-label">Étage</label>
-            <select id="floor" value={fields.floor} onChange={set("floor")} className="field">
-              <option value="">Choisir…</option>
-              {Object.entries(FLOOR_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <fieldset>
-            <legend className="field-label">Ascenseur</legend>
-            <div className="flex gap-3">
-              {[["yes", "Oui"], ["no", "Non"]].map(([v, l]) => (
-                <label key={v} className={clsx("flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-ui border px-3 py-2", fields.hasElevator === v ? "border-ink bg-paper-alt" : "border-line")}>
-                  <input type="radio" name="hasElevator" value={v} checked={fields.hasElevator === v} onChange={set("hasElevator")} className="accent-ink" />
-                  {l}
-                </label>
-              ))}
+        {/* ---------------------------------------------------------- 3 */}
+        {step === 3 && (
+          <div className="space-y-5">
+            <Field id="street" label="Adresse" required error={errors.street}>
+              <input {...aria("street", errors.street)} autoComplete="street-address" {...pickupInput("street")} />
+            </Field>
+            <div className="grid grid-cols-[2fr_3fr] gap-5">
+              <Field id="postalCode" label="Code postal" required error={errors.postalCode}>
+                <input {...aria("postalCode", errors.postalCode)} autoComplete="postal-code" inputMode="numeric" {...pickupInput("postalCode")} />
+              </Field>
+              <Field id="city" label="Ville" required error={errors.city}>
+                <input {...aria("city", errors.city)} autoComplete="address-level2" {...pickupInput("city")} />
+              </Field>
             </div>
-          </fieldset>
-        </div>
-        <div>
-          <label htmlFor="accessNotes" className="field-label">Accès difficile ou précisions</label>
-          <textarea id="accessNotes" rows={3} value={fields.accessNotes} onChange={set("accessNotes")} placeholder="ex. escalier étroit, code d'accès, stationnement…" className="field" />
-        </div>
-      </section>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="floor" label="Étage" optional>
+                <select {...aria("floor")} {...pickupInput("floor")}>
+                  <option value="">Choisir…</option>
+                  {Object.entries(FLOOR_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </Field>
+              <fieldset>
+                <legend className="field-label">Ascenseur <span className="text-ink-muted">(facultatif)</span></legend>
+                <div className="flex gap-3">
+                  {[["yes", "Oui"], ["no", "Non"]].map(([v, l]) => (
+                    <label key={v} className={clsx("flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-ui border px-3 py-2", pickup.hasElevator === v ? "border-ink bg-paper-alt" : "border-line")}>
+                      <input type="radio" name="hasElevator" value={v} checked={pickup.hasElevator === v} onChange={pickupInput("hasElevator").onChange} className="accent-ink" />
+                      {l}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <Field id="accessNotes" label="Accès difficile ou précisions" optional>
+              <textarea {...aria("accessNotes")} rows={3} placeholder={c.pickup.accessPlaceholder} {...pickupInput("accessNotes")} />
+            </Field>
+            <div>
+              <label className={clsx("flex cursor-pointer items-start gap-3 rounded-ui border p-4", errors.certified ? "border-danger" : "border-line")}>
+                <input
+                  id="certified"
+                  type="checkbox"
+                  checked={certified}
+                  onChange={(e) => {
+                    setCertified(e.target.checked);
+                    clearError("certified");
+                  }}
+                  aria-invalid={!!errors.certified || undefined}
+                  aria-describedby={errors.certified ? "certified-error" : undefined}
+                  className="mt-1 h-5 w-5 shrink-0 accent-ink"
+                />
+                <span>{CERTIFICATION_TEXT}<Req /></span>
+              </label>
+              <ErrorText id="certified" error={errors.certified} />
+            </div>
+          </div>
+        )}
 
-      {/* ---------------------------------------------------------- C */}
-      <section aria-labelledby="sec-coordonnees" className="space-y-6">
-        <h2 id="sec-coordonnees" className="text-xl">3. Vos coordonnées</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {textInput("firstName", "Prénom", { required: true, autoComplete: "given-name" })}
-          {textInput("lastName", "Nom", { required: true, autoComplete: "family-name" })}
-          {textInput("email", "E-mail", { required: true, type: "email", autoComplete: "email" })}
-          {textInput("phone", "Téléphone", { required: true, type: "tel", autoComplete: "tel" })}
+        {/* ---------------------------------------------------------- actions */}
+        <div className="space-y-3">
+          <div className="flex gap-3">
+            {step > 1 && (
+              <button type="button" className="btn-secondary py-4" onClick={() => goTo(step - 1)} disabled={submitting}>
+                <span aria-hidden>←</span> Retour
+              </button>
+            )}
+            <button type="submit" className="btn-primary flex-1 py-4" disabled={submitting}>
+              {step === 1 && <>{c.seller.next} <span aria-hidden>→</span></>}
+              {step === 2 && (photosPending ? "Photos en cours d'envoi…" : <>Continuer <span aria-hidden>→</span></>)}
+              {step === 3 && (submitting ? "Envoi en cours…" : c.pickup.submit)}
+            </button>
+          </div>
+          {step === 1 && (
+            <p className="text-sm text-ink-soft">
+              {CONTACT_CONSENT_TEXT} <Link href="/confidentialite" className="underline">Confidentialité</Link>
+            </p>
+          )}
+          {draftLoaded && hasInteracted.current && step > 1 && <p className="text-right text-xs text-ink-muted">{c.draftSaved}</p>}
         </div>
-        {textInput("street", "Adresse (rue)", { required: true, autoComplete: "street-address" })}
-        <div className="grid grid-cols-[2fr_3fr] gap-6">
-          {textInput("postalCode", "Code postal", { required: true, autoComplete: "postal-code", inputMode: "numeric" })}
-          {textInput("city", "Ville", { required: true, autoComplete: "address-level2" })}
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------- D */}
-      <section aria-labelledby="sec-certification" className="space-y-4">
-        <h2 id="sec-certification" className="text-xl">4. Certification</h2>
-        <label className={clsx("flex cursor-pointer items-start gap-3 rounded-ui border p-4", err("certified") ? "border-danger" : "border-line")}>
-          <input
-            id="certified"
-            type="checkbox"
-            checked={certified}
-            onChange={(e) => {
-              setCertified(e.target.checked);
-              setErrors(({ certified: _c, ...rest }) => rest);
-            }}
-            aria-invalid={!!err("certified")}
-            aria-describedby={describedBy("certified")}
-            className="mt-1 h-5 w-5 shrink-0 accent-ink"
-          />
-          <span>{CERTIFICATION_TEXT}<Req /></span>
-        </label>
-        <ErrorText name="certified" />
-      </section>
-
-      <div className="space-y-3">
-        <button type="submit" className="btn-primary w-full py-4 text-sm" disabled={submitting}>
-          {submitting ? "Envoi en cours…" : uploading ? "Photos en cours d'envoi…" : "Envoyer ma demande"}
-        </button>
-        <p className="text-center text-xs text-ink-muted"><span className="text-accent">*</span> champs obligatoires</p>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

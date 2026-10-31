@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CERTIFICATION_TEXT, depotSchema } from "@/lib/validation/depot";
+import { CONTACT_CONSENT_TEXT } from "@/lib/content/depot";
+import { ITEM_TYPES } from "@/lib/depot/item-types";
+import { conditionFromScore } from "@/lib/depot/condition";
+import { composeName } from "@/lib/depot/name";
 
 const BUCKET = "furniture-photos";
+const SAVE_ERROR = "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant.";
 
 export async function POST(request: Request) {
   const parsed = depotSchema.safeParse(await request.json().catch(() => null));
@@ -12,111 +17,97 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const d = parsed.data;
+  const { submissionId, source, seller, pieces, pickup } = parsed.data;
   const supabase = createAdminClient();
-  const folder = `depot/${d.submissionId}`;
+  const folder = `depot/${submissionId}`;
 
-  // Les fichiers référencés doivent appartenir à ce dépôt et exister réellement.
-  const { data: objects, error: listError } = await supabase.storage.from(BUCKET).list(folder, { limit: 100 });
+  // Les fichiers référencés doivent appartenir à cette demande et exister réellement.
+  const { data: objects, error: listError } = await supabase.storage.from(BUCKET).list(folder, { limit: 1000 });
   if (listError) return NextResponse.json({ error: "Stockage indisponible, réessayez." }, { status: 500 });
   const existing = new Set((objects ?? []).map((o) => `${folder}/${o.name}`));
-  const allFiles = [...d.photos, ...d.certificates];
-  const missing = allFiles.some((p) => !existing.has(p.path) || !existing.has(p.thumbPath));
+  const missing = pieces.some((p) => p.photos.some((ph) => !existing.has(ph.path) || !existing.has(ph.thumbPath)));
   if (missing) {
     return NextResponse.json({ error: "Une photo n'a pas été envoyée correctement. Réessayez de l'ajouter." }, { status: 400 });
   }
 
-  const { count } = await supabase.from("photos").select("id", { count: "exact", head: true }).eq("submission_id", d.submissionId);
+  const { count } = await supabase.from("furnitures").select("id", { count: "exact", head: true }).eq("submission_id", submissionId);
   if (count) return NextResponse.json({ error: "Cette demande a déjà été envoyée." }, { status: 409 });
 
-  // Marque : on vérifie que l'identifiant existe et est actif.
-  let brandId: string | null = null;
-  if (d.brandId) {
-    const { data: brand } = await supabase.from("brands").select("id").eq("id", d.brandId).eq("active", true).maybeSingle();
-    brandId = brand?.id ?? null;
-  }
-  const brandOther = brandId ? null : d.brandOther;
-  if (!brandId && !brandOther) return NextResponse.json({ error: "Choisissez une marque ou précisez-la." }, { status: 400 });
+  // Marque saisie librement : rattachée à la liste si elle y figure (casse ignorée).
+  const { data: brands } = await supabase.from("brands").select("id, name").eq("active", true);
+  const brandIds = new Map((brands ?? []).map((b) => [b.name.trim().toLowerCase(), b.id]));
 
-  const { data: furniture, error: insertError } = await supabase
-    .from("furnitures")
-    .insert({
-      name: d.name,
-      category: d.category,
+  const now = new Date().toISOString();
+  const rows = pieces.map((p, i) => {
+    const brandId = brandIds.get(p.brand.toLowerCase()) ?? null;
+    return {
+      submission_id: submissionId,
+      item_index: i + 1,
+      source,
+      name: composeName({ itemType: p.itemType, brand: p.brand, model: p.model }),
+      item_type: p.itemType,
+      category: ITEM_TYPES[p.itemType].category,
       brand_id: brandId,
-      brand_other: brandOther,
-      designer: d.designer,
-      manufacture_year: d.manufactureYear,
-      description: d.description,
-      width_cm: d.widthCm,
-      depth_cm: d.depthCm,
-      height_cm: d.heightCm,
-      materials: d.materials,
-      condition: d.condition,
-      defects: d.defects,
-      purchase_year: d.purchaseYear,
-      original_price: d.originalPrice,
-      desired_price: d.desiredPrice,
-      floor: d.floor,
-      has_elevator: d.hasElevator,
-      access_notes: d.accessNotes,
-      seller_first_name: d.firstName,
-      seller_last_name: d.lastName,
-      seller_email: d.email.toLowerCase(),
-      seller_phone: d.phone,
-      seller_street: d.street,
-      seller_postal_code: d.postalCode,
-      seller_city: d.city,
-      certified_at: new Date().toISOString(),
+      brand_other: brandId ? null : p.brand,
+      model: p.model,
+      quantity: p.quantity,
+      description: p.description,
+      condition_score: p.conditionScore,
+      condition: conditionFromScore(p.conditionScore),
+      defects: p.conditionDetails,
+      purchase_year: p.purchaseYear,
+      original_price: p.originalPrice,
+      floor: pickup.floor,
+      has_elevator: pickup.hasElevator,
+      access_notes: pickup.accessNotes,
+      seller_first_name: seller.firstName,
+      seller_last_name: seller.lastName,
+      seller_email: seller.email,
+      seller_phone: seller.phone,
+      seller_street: pickup.street,
+      seller_postal_code: pickup.postalCode,
+      seller_city: pickup.city,
+      contact_consent_at: now,
+      contact_consent_text: CONTACT_CONSENT_TEXT,
+      certified_at: now,
       certification_text: CERTIFICATION_TEXT,
-      status: "new",
-    })
-    .select("id")
-    .single();
-  if (insertError || !furniture) {
-    return NextResponse.json({ error: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant." }, { status: 500 });
-  }
+      status: "new" as const,
+    };
+  });
 
-  const photoRows = [
-    ...d.photos.map((p, i) => ({
-      furniture_id: furniture.id,
-      submission_id: d.submissionId,
+  const { data: inserted, error: insertError } = await supabase.from("furnitures").insert(rows).select("id, item_index, brand_other");
+  if (insertError || !inserted || inserted.length !== pieces.length) {
+    return NextResponse.json({ error: SAVE_ERROR }, { status: 500 });
+  }
+  const idByIndex = new Map(inserted.map((f) => [f.item_index, f.id]));
+
+  const photoRows = pieces.flatMap((p, i) =>
+    p.photos.map((ph, position) => ({
+      furniture_id: idByIndex.get(i + 1)!,
+      submission_id: submissionId,
       kind: "deposit" as const,
-      slot: p.slot,
-      position: i,
-      is_main: i === 0,
-      storage_path: p.path,
-      thumb_path: p.thumbPath,
+      slot: ph.slot,
+      position,
+      is_main: position === 0,
+      storage_path: ph.path,
+      thumb_path: ph.thumbPath,
     })),
-    ...d.certificates.map((p, i) => ({
-      furniture_id: furniture.id,
-      submission_id: d.submissionId,
-      kind: "certificate" as const,
-      slot: "other" as const,
-      position: i,
-      is_main: false,
-      storage_path: p.path,
-      thumb_path: p.thumbPath,
-    })),
-  ];
+  );
+  const historyRows = inserted.map((f) => ({ furniture_id: f.id, from_status: null, to_status: "new" as const, payload: { source: "formulaire" } }));
+  const suggestionRows = inserted
+    .filter((f) => f.brand_other && f.brand_other.trim().toLowerCase() !== "inconnu")
+    .map((f) => ({ label: f.brand_other!, furniture_id: f.id }));
 
   const [photosRes, historyRes, suggestionRes] = await Promise.all([
     supabase.from("photos").insert(photoRows),
-    supabase.from("status_history").insert({
-      furniture_id: furniture.id,
-      from_status: null,
-      to_status: "new",
-      payload: { source: "formulaire" },
-    }),
-    brandOther
-      ? supabase.from("brand_suggestions").insert({ label: brandOther, furniture_id: furniture.id })
-      : Promise.resolve({ error: null }),
+    supabase.from("status_history").insert(historyRows),
+    suggestionRows.length ? supabase.from("brand_suggestions").insert(suggestionRows) : Promise.resolve({ error: null }),
   ]);
 
   if (photosRes.error || historyRes.error || suggestionRes.error) {
-    await supabase.from("furnitures").delete().eq("id", furniture.id);
-    return NextResponse.json({ error: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant." }, { status: 500 });
+    await supabase.from("furnitures").delete().eq("submission_id", submissionId);
+    return NextResponse.json({ error: SAVE_ERROR }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, count: inserted.length });
 }

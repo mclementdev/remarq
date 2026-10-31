@@ -1,27 +1,34 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DepotForm } from "@/components/depot/DepotForm";
+import { DepotIntro, DepotIntroHeader } from "@/components/depot/DepotIntro";
+import { getConsignmentScale } from "@/lib/settings";
+import { SALON_SOURCES } from "@/lib/content/salon";
+import { depotContent } from "@/lib/content/depot";
 
 export const metadata: Metadata = {
-  title: "Proposer un meuble",
-  description: "Confiez-nous vos meubles de design : décrivez votre pièce en quelques minutes, nous vous faisons une proposition.",
+  title: "Vendre vos meubles de design",
+  description: depotContent.intro.text,
   robots: { index: true, follow: true },
 };
 export const dynamic = "force-dynamic";
 
-export default async function DepotPage() {
+export default async function DepotPage({ searchParams }: { searchParams: Promise<{ source?: string }> }) {
+  const { source } = await searchParams;
   const supabase = createAdminClient();
-  const { data: brands } = await supabase.from("brands").select("id, name").eq("active", true).order("name");
+  const [{ data: brands }, scale] = await Promise.all([
+    supabase.from("brands").select("id, name").eq("active", true).order("name"),
+    getConsignmentScale(supabase),
+  ]);
 
   return (
-    <>
-      <div className="mb-10 space-y-3 text-center">
-        <h1 className="text-2xl sm:text-3xl">Proposer un meuble</h1>
-        <p className="text-ink-soft">
-          Vous souhaitez vendre une pièce de design ? Décrivez-la en quelques minutes, nous étudions chaque demande avec attention et revenons vers vous rapidement.
-        </p>
+    // Mobile : accroche, formulaire, puis avantages et barème. Ordinateur : présentation à gauche, formulaire à droite.
+    <div className="grid gap-10 lg:grid-cols-[5fr_6fr] lg:grid-rows-[auto_1fr] lg:gap-x-14">
+      <DepotIntroHeader />
+      <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <DepotForm brands={brands ?? []} source={(SALON_SOURCES as readonly string[]).includes(source ?? "") ? source : null} />
       </div>
-      <DepotForm brands={brands ?? []} />
-    </>
+      <DepotIntro scale={scale} />
+    </div>
   );
 }

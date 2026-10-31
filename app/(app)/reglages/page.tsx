@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getSettings } from "@/lib/settings";
+import { getConsignmentScale, getSettings } from "@/lib/settings";
+import { ScaleEditor } from "@/components/settings/ScaleEditor";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { BrandsManager } from "@/components/settings/BrandsManager";
 
@@ -8,8 +9,9 @@ export const metadata = { title: "Réglages" };
 
 export default async function ReglagesPage() {
   const supabase = await createClient();
-  const [settings, { data: brands }, { data: usage }, { data: suggestions }] = await Promise.all([
+  const [settings, scale, { data: brands }, { data: usage }, { data: suggestions }] = await Promise.all([
     getSettings(supabase),
+    getConsignmentScale(supabase),
     supabase.from("brands").select("id, name, active").order("name"),
     supabase.from("furnitures").select("brand_id").not("brand_id", "is", null),
     supabase.from("brand_suggestions").select("id, label").eq("status", "pending").order("created_at"),
@@ -44,6 +46,10 @@ export default async function ReglagesPage() {
             brands={(brands ?? []).map((b) => ({ ...b, usage: counts[b.id] ?? 0 }))}
             suggestions={[...grouped.values()]}
           />
+        </section>
+        <section aria-labelledby="scale-title" className="panel p-5 lg:col-span-2">
+          <h2 id="scale-title" className="section-title mb-4">Barème de partage (dépôt-vente)</h2>
+          <ScaleEditor scale={scale} />
         </section>
       </div>
     </div>

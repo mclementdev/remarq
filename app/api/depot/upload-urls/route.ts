@@ -3,8 +3,8 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "furniture-photos";
-/** Garde-fou : nombre d'objets max dans un dossier de dépôt (photos + vignettes + réessais). */
-const MAX_OBJECTS_PER_SUBMISSION = 60;
+/** Garde-fou : objets max dans un dossier de dépôt (10 pièces × 10 photos × 2 fichiers, plus les réessais). */
+const MAX_OBJECTS_PER_SUBMISSION = 260;
 
 const bodySchema = z.object({ submissionId: z.uuid() });
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const supabase = createAdminClient();
   const folder = `depot/${submissionId}`;
 
-  const { data: existing, error: listError } = await supabase.storage.from(BUCKET).list(folder, { limit: 100 });
+  const { data: existing, error: listError } = await supabase.storage.from(BUCKET).list(folder, { limit: 1000 });
   if (listError) return NextResponse.json({ error: "Stockage indisponible." }, { status: 500 });
   if ((existing?.length ?? 0) >= MAX_OBJECTS_PER_SUBMISSION) {
     return NextResponse.json({ error: "Trop de fichiers envoyés pour cette demande." }, { status: 429 });
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   // Une demande déjà finalisée ne peut plus recevoir de fichiers.
   const { count } = await supabase
-    .from("photos")
+    .from("furnitures")
     .select("id", { count: "exact", head: true })
     .eq("submission_id", submissionId);
   if (count) return NextResponse.json({ error: "Demande déjà envoyée." }, { status: 409 });

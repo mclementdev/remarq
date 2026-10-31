@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DepotForm } from "@/components/depot/DepotForm";
 import { LeadForm } from "@/components/salon/LeadForm";
+import { DepotIntro } from "@/components/depot/DepotIntro";
+import { getConsignmentScale } from "@/lib/settings";
 import { ON_SITE_SOURCES, parseSource, salonContent as c } from "@/lib/content/salon";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +20,11 @@ export const metadata: Metadata = {
 export default async function SalonPage({ searchParams }: { searchParams: Promise<{ source?: string }> }) {
   const source = parseSource((await searchParams).source);
   const onSite = ON_SITE_SOURCES.includes(source);
-  const { data: brands } = await createAdminClient().from("brands").select("id, name").eq("active", true).order("name");
+  const supabase = createAdminClient();
+  const [{ data: brands }, scale] = await Promise.all([
+    supabase.from("brands").select("id, name").eq("active", true).order("name"),
+    getConsignmentScale(supabase),
+  ]);
 
   const leadBlock = (
     <section id="lien" aria-labelledby="lien-title" className="scroll-mt-6 space-y-4 rounded-ui border border-line bg-paper p-5 sm:p-6">
@@ -71,7 +77,8 @@ export default async function SalonPage({ searchParams }: { searchParams: Promis
           <h2 id="formulaire-title" className="text-2xl">{c.form.title}</h2>
           <p className="text-ink-soft">{c.form.intro}</p>
         </div>
-        <DepotForm brands={brands ?? []} />
+        <DepotForm brands={brands ?? []} source={source} />
+        <DepotIntro scale={scale} />
       </section>
     </div>
   );

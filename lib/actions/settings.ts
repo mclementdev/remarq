@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/supabase/server";
+import { scaleSchema } from "@/lib/depot/scale";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 const fail = (error: string): ActionResult => ({ ok: false, error });
@@ -103,5 +104,19 @@ export async function updateSettings(input: unknown): Promise<ActionResult> {
     .upsert(Object.entries(parsed.data).map(([key, value]) => ({ key, value, updated_at: now })));
   if (error) return fail("Enregistrement impossible.");
   revalidateAll();
+  return { ok: true };
+}
+
+/** Barème de partage affiché sur le formulaire public. */
+export async function updateConsignmentScale(input: unknown): Promise<ActionResult> {
+  const parsed = scaleSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Barème invalide.");
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key: "consignment_scale", value: parsed.data, updated_at: new Date().toISOString() });
+  if (error) return fail("Enregistrement impossible.");
+  revalidatePath("/depot");
+  revalidatePath("/salon");
   return { ok: true };
 }

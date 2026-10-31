@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { parseScale, type ScaleRow } from "@/lib/depot/scale";
 
 export type AppSettings = {
   shop_name: string;
@@ -38,4 +39,10 @@ export async function getSettings(supabase: SupabaseClient<Database>): Promise<A
     }
   }
   return settings as AppSettings;
+}
+
+/** Barème de partage affiché sur le formulaire public (réglage consignment_scale). */
+export async function getConsignmentScale(supabase: SupabaseClient<Database>): Promise<ScaleRow[]> {
+  const { data } = await supabase.from("settings").select("value").eq("key", "consignment_scale").maybeSingle();
+  return parseScale(data?.value);
 }
