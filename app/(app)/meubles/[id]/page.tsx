@@ -101,7 +101,7 @@ export default async function FurniturePage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <header className="sticky top-14 z-20 -mx-4 border-b border-line-soft bg-paper/95 px-4 py-3 backdrop-blur lg:-mx-8 lg:px-8">
+      <header className="sticky top-14 z-20 -mx-4 border-b border-line-soft bg-cream/95 px-4 py-3 backdrop-blur lg:-mx-8 lg:px-8">
         <nav aria-label="Fil d'Ariane" className="mb-1 text-xs text-ink-muted">
           <Link href="/meubles" className="hover:underline">Tous les meubles</Link> / <Link href="/crm" className="hover:underline">CRM</Link>
         </nav>

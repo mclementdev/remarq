@@ -16,7 +16,7 @@ const LINKS = [
 export function AppNav({ firstName }: { firstName: string }) {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-30 border-b border-line-soft bg-paper/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-line-soft bg-cream/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-page items-center gap-6 px-4 lg:px-8">
         <Link href="/" aria-label="Accueil"><Logo size={28} /></Link>
         <nav aria-label="Navigation principale" className="flex flex-1 items-center gap-1 overflow-x-auto">
