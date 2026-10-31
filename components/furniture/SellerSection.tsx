@@ -21,7 +21,7 @@ export function SellerSection({ furniture: f }: Props) {
   const [pending, startTransition] = useTransition();
   const initial = {
     seller_first_name: f.seller_first_name,
-    seller_last_name: f.seller_last_name,
+    seller_last_name: f.seller_last_name ?? "",
     seller_email: f.seller_email,
     seller_phone: f.seller_phone,
     seller_street: f.seller_street,
@@ -42,7 +42,7 @@ export function SellerSection({ furniture: f }: Props) {
     return (
       <div className="space-y-4 text-sm">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-base">{f.seller_first_name} {f.seller_last_name}</p>
+          <p className="text-base">{[f.seller_first_name, f.seller_last_name].filter(Boolean).join(" ")}</p>
           <button type="button" className="btn-secondary btn-sm" onClick={() => { setV(initial); setEditing(true); }}>Modifier</button>
         </div>
         <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-2">
@@ -90,7 +90,7 @@ export function SellerSection({ furniture: f }: Props) {
     >
       <div className="grid grid-cols-2 gap-3">
         {input("seller_first_name", "Prénom")}
-        {input("seller_last_name", "Nom")}
+        {input("seller_last_name", "Nom (facultatif)")}
       </div>
       {input("seller_email", "E-mail", { type: "email" })}
       {input("seller_phone", "Téléphone", { type: "tel" })}

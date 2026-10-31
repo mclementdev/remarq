@@ -62,7 +62,7 @@ const INFO_LABELS: Record<string, string> = {
 
 const sellerSchema = z.object({
   seller_first_name: z.string().trim().min(1, "Prénom obligatoire.").max(100),
-  seller_last_name: z.string().trim().min(1, "Nom obligatoire.").max(100),
+  seller_last_name: optText,
   seller_email: z.email("E-mail invalide."),
   seller_phone: z.string().trim().min(6, "Téléphone invalide.").max(30),
   seller_street: z.string().trim().min(1, "Adresse obligatoire.").max(300),

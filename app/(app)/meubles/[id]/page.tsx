@@ -95,7 +95,7 @@ export default async function FurniturePage({ params }: { params: Promise<{ id: 
   // Les champs de la vue sont typés « nullable » : la ligne existe, on les ré-affirme pour les sections.
   const furniture = f as typeof f & {
     id: string; name: string; category: Category; description: string; condition: "new" | "very_good" | "good" | "used" | "to_restore";
-    seller_first_name: string; seller_last_name: string; seller_email: string; seller_phone: string;
+    seller_first_name: string; seller_last_name: string | null; seller_email: string; seller_phone: string;
     seller_street: string; seller_postal_code: string; seller_city: string;
   };
 

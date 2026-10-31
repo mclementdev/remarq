@@ -9,10 +9,10 @@ export const CATEGORY_LABELS = {
 export type Category = keyof typeof CATEGORY_LABELS;
 
 export const CONDITION_LABELS = {
-  new: "Neuf",
+  new: "Comme neuf",
   very_good: "Très bon état",
   good: "Bon état",
-  used: "État d'usage",
+  used: "Usure visible",
   to_restore: "À restaurer",
 } as const;
 export type Condition = keyof typeof CONDITION_LABELS;
