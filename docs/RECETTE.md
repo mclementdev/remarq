@@ -23,16 +23,21 @@ Cochez au fur et à mesure ; notez tout écart avec une capture d'écran.
 - [ ] Gmail → *Afficher l'original* : SPF PASS, DKIM PASS.
 - [ ] *Supabase → salon_leads* : la ligne contient l'e-mail, la source, la date de rappel et `email_sent_at`.
 
-## D. Formulaire de dépôt (inchangé)
-- [ ] Sur `/salon`, « Remplir le formulaire maintenant » descend jusqu'au formulaire.
-- [ ] 📶 Dépôt avec **3 photos** prises avec l'appareil photo du téléphone : barres de progression, puis page Merci.
-- [ ] 📶 Dépôt avec **10 photos** : aucune erreur, envoi en moins de 2 minutes.
-- [ ] Moins de 3 photos : envoi bloqué avec un message clair.
-- [ ] `/depot` fonctionne aussi directement.
+## D. Formulaire de reprise (3 étapes, plusieurs pièces)
+- [ ] Sur `/salon`, « Remplir le formulaire maintenant » descend jusqu'au formulaire ; `/depot` fonctionne aussi directement (présentation et barème à gauche sur ordinateur, sous le formulaire sur téléphone).
+- [ ] Étape 1 : prénom, e-mail et téléphone obligatoires ; nom facultatif ; un numéro trop court est refusé ; l'indicatif se change (+32, +41…).
+- [ ] Étape 2 : sans type de pièce ou avec moins de 3 photos, « Continuer » est bloqué avec un message sous le champ.
+- [ ] 📶 Une pièce avec **3 photos** prises avec l'appareil photo : barres de progression, « ✓ Envoyée » sur chaque vignette.
+- [ ] 📶 « Ajouter une autre pièce » : deuxième pièce avec **10 photos** (sélection multiple dans la galerie) ; envoi en moins de 2 minutes ; la zone d'ajout disparaît à 10.
+- [ ] Le curseur « Note d'état » affiche le bon libellé (0–3 Usé, 4–6 Bon, 7–8 Très bon, 9–10 Comme neuf).
+- [ ] Brouillon : recharger la page à l'étape 2 → les textes sont conservés (les photos sont à rajouter).
+- [ ] Étape 3 : adresse, case de certification, « Envoyer ma demande » → page Merci (« … pour 2 pièces »).
+- [ ] *Réglages → Barème de partage* : modifier un pourcentage, l'enregistrer, le voir sur `/depot`, puis le remettre.
 
 ## E. Outil (bureau)
 - [ ] Connexion avec votre compte puis celui de François.
-- [ ] Les demandes de C et D apparaissent dans *CRM* en « Nouvelle demande », avec leurs photos.
+- [ ] Les demandes de D apparaissent dans *CRM* en « Nouvelle demande », avec leurs photos : une carte par pièce, pastille « 1/2 », « ×2 » pour une quantité de 2.
+- [ ] Fiche d'une pièce : type, modèle, quantité, note du vendeur, source (QR), consentement, et liens vers les autres pièces de la demande. Modifier le téléphone du vendeur le change sur les autres pièces.
 - [ ] Déplacer une carte : fenêtre de saisie, puis historique avec date et prénom.
 - [ ] Fiche → *Télécharger les photos (ZIP)*.
 - [ ] Charte appliquée sur le dashboard, le Kanban et une fiche.

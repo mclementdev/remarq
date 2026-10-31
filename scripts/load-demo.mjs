@@ -137,6 +137,7 @@ async function load() {
     const stepDates = steps.map((_, k) => addDays(created_at, (k * ((soldAt ?? now) - created_at)) / Math.max(1, steps.length) / 86_400_000));
     const statusChangedAt = p.status === "done" ? addDays(soldAt, 3) : p.status === "sold" ? soldAt : stepDates[stepDates.length - 1];
 
+    const condition = pick(CONDITIONS);
     const furniture = {
       name,
       category,
@@ -149,7 +150,11 @@ async function load() {
       depth_cm: round10(40 + rand() * 60),
       height_cm: round10(40 + rand() * 120),
       materials,
-      condition: pick(CONDITIONS),
+      condition,
+      condition_score: { new: 9, very_good: 8, good: 5, used: 3, to_restore: 1 }[condition],
+      item_type: { seating: "armchair", storage: "sideboard", tables_desks: "table", lighting_decor: "lamp" }[category],
+      quantity: 1,
+      source: rand() < 0.3 ? pick(["stand", "carte", "ig"]) : null,
       defects: rand() < 0.4 ? "Légères traces d'usage sur l'assise." : null,
       desired_price: rand() < 0.6 ? round10(expected * 1.1) : null,
       floor: pick(["ground", "1", "2", "3", "4_plus"]),

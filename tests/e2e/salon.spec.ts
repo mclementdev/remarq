@@ -28,8 +28,8 @@ test("visiteur sur le stand : reçoit le lien et voit le formulaire en bas de pa
   await hero.getByRole("link", { name: "Remplir le formulaire maintenant" }).click();
   await expect(page).toHaveURL(/#formulaire$/);
   await expect(page.getByRole("heading", { name: "Décrivez votre meuble" })).toBeInViewport();
-  await expect(page.getByLabel("Nom / modèle du meuble")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Envoyer ma demande" })).toBeVisible();
+  await expect(page.getByLabel("Prénom")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Décrire mes pièces/ })).toBeVisible();
 });
 
 test("rappel facultatif enregistré en heure de Paris", async ({ page }) => {

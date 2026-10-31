@@ -119,6 +119,13 @@ describe("POST /api/depot/submit", () => {
     expect(db.inserts.brand_suggestions).toBeUndefined(); // « Inconnu » n'est pas proposé comme marque
   });
 
+  it("reprend l'orthographe de la liste pour une marque connue", async () => {
+    const b = body({ pieces: [piece(1, { brand: "knoll" })] });
+    registerFiles(b);
+    expect((await post(b)).status).toBe(200);
+    expect(db.inserts.furnitures[0]).toMatchObject({ brand_id: "brand-knoll", name: "Fauteuil ou chauffeuse · Knoll Womb" });
+  });
+
   it("propose une marque inconnue de la liste", async () => {
     const b = body({ pieces: [piece(1, { brand: "Pierre Paulin" })] });
     registerFiles(b);

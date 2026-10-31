@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { ITEM_TYPE_KEYS } from "@/lib/depot/item-types";
 import { requireUser } from "@/lib/supabase/server";
 import { PHOTO_BUCKET } from "@/lib/storage";
 import type { FurnitureUpdate } from "@/lib/types";
@@ -24,6 +25,10 @@ function revalidate(id: string) {
 // ---------------------------------------------------------------------------
 const infoSchema = z.object({
   name: z.string().trim().min(1, "Le nom est obligatoire.").max(200),
+  item_type: z.enum(ITEM_TYPE_KEYS).nullish().transform((v) => v ?? null),
+  model: optText,
+  quantity: z.number({ error: "Quantité invalide." }).int("Quantité invalide.").min(1, "Quantité invalide.").max(99, "99 maximum."),
+  condition_score: z.number().int("Note entière de 0 à 10.").min(0, "Note de 0 à 10.").max(10, "Note de 0 à 10.").nullish().transform((v) => v ?? null),
   category: z.enum(["seating", "storage", "tables_desks", "lighting_decor"]),
   brand_id: z.uuid().nullish().transform((v) => v ?? null),
   brand_other: optText,
@@ -43,6 +48,10 @@ const infoSchema = z.object({
 
 const INFO_LABELS: Record<string, string> = {
   name: "nom",
+  item_type: "type de pièce",
+  model: "modèle",
+  quantity: "quantité",
+  condition_score: "note d'état",
   category: "catégorie",
   brand_id: "marque",
   brand_other: "marque",
@@ -54,7 +63,7 @@ const INFO_LABELS: Record<string, string> = {
   height_cm: "dimensions",
   materials: "matières",
   condition: "état",
-  defects: "défauts",
+  defects: "détails sur l'état",
   purchase_year: "année d'achat",
   original_price: "prix d'origine",
   desired_price: "prix souhaité",
@@ -129,7 +138,18 @@ export async function updateFurnitureInfo(id: string, input: unknown): Promise<A
 export async function updateSeller(id: string, input: unknown): Promise<ActionResult> {
   const parsed = sellerSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Données invalides.");
-  return updateWithLog(id, { ...parsed.data, seller_email: parsed.data.seller_email.toLowerCase() }, SELLER_LABELS, "Vendeur modifié");
+  const patch = { ...parsed.data, seller_email: parsed.data.seller_email.toLowerCase() };
+  const res = await updateWithLog(id, patch, SELLER_LABELS, "Vendeur modifié");
+  if (!res.ok) return res;
+
+  // Demande multi-pièces : les coordonnées sont recopiées sur chaque pièce, on les garde alignées.
+  const { supabase } = await requireUser();
+  const { data: f } = await supabase.from("furnitures").select("submission_id").eq("id", id).single();
+  if (f?.submission_id) {
+    const { data: others } = await supabase.from("furnitures").select("id").eq("submission_id", f.submission_id).neq("id", id);
+    for (const o of others ?? []) await updateWithLog(o.id, patch, SELLER_LABELS, "Vendeur modifié (même demande)");
+  }
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ITEM_TYPES, itemTypesByCategory, itemTypeLabel } from "@/lib/depot/item-types";
 import { conditionFromScore, scoreLabel } from "@/lib/depot/condition";
-import { toInternational } from "@/lib/depot/phone";
+import { formatPhone, toInternational } from "@/lib/depot/phone";
 import { composeName } from "@/lib/depot/name";
 import { DEFAULT_SCALE, parseScale, scaleLabels } from "@/lib/depot/scale";
 
@@ -43,6 +43,11 @@ describe("téléphone", () => {
   it("garde un numéro déjà international", () => {
     expect(toInternational("+33", "+41 79 123 45 67")).toBe("+41791234567");
     expect(toInternational("+33", "0041 79 123 45 67")).toBe("+41791234567");
+  });
+  it("affiche un numéro français groupé", () => {
+    expect(formatPhone("+33612345678")).toBe("+33 6 12 34 56 78");
+    expect(formatPhone("+41791234567")).toBe("+41791234567");
+    expect(formatPhone("06 12 34 56 78")).toBe("06 12 34 56 78");
   });
   it("refuse un numéro trop court ou avec des lettres", () => {
     expect(toInternational("+33", "1234")).toBeNull();

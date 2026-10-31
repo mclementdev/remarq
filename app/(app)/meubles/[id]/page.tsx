@@ -6,7 +6,7 @@ import { signPaths } from "@/lib/storage";
 import { getSettings } from "@/lib/settings";
 import { agingLabel, nonConformCounter } from "@/lib/calc/aging";
 import { formatDate } from "@/lib/format";
-import { CATEGORY_LABELS, type Category, type PhotoSlot } from "@/lib/labels";
+import { CATEGORY_LABELS, SOURCE_LABELS, type Category, type PhotoSlot } from "@/lib/labels";
 import { STATUS_LABELS, type FurnitureStatus } from "@/lib/status";
 import { ModeBadge, StatusBadge } from "@/components/ui/Badges";
 import { Section } from "@/components/furniture/Section";
@@ -59,6 +59,10 @@ export default async function FurniturePage({ params }: { params: Promise<{ id: 
   ]);
   const attachmentUrls = await signPaths(supabase, (attachments ?? []).map((a) => a.storage_path), ATTACHMENT_BUCKET);
   if (!f || !f.id || !f.status) notFound();
+  // Autres pièces de la même demande (formulaire multi-pièces).
+  const { data: siblings } = f.submission_id && (f.submission_size ?? 0) > 1
+    ? await supabase.from("furnitures").select("id, name, item_index").eq("submission_id", f.submission_id).order("item_index")
+    : { data: null };
 
   const photos = photosRes.data ?? [];
   const urls = await signPaths(supabase, photos.flatMap((p) => [p.storage_path, p.thumb_path]));
@@ -94,7 +98,7 @@ export default async function FurniturePage({ params }: { params: Promise<{ id: 
 
   // Les champs de la vue sont typés « nullable » : la ligne existe, on les ré-affirme pour les sections.
   const furniture = f as typeof f & {
-    id: string; name: string; category: Category; description: string; condition: "new" | "very_good" | "good" | "used" | "to_restore";
+    id: string; name: string; category: Category; description: string; condition: "new" | "very_good" | "good" | "used" | "to_restore"; quantity: number;
     seller_first_name: string; seller_last_name: string | null; seller_email: string; seller_phone: string;
     seller_street: string; seller_postal_code: string; seller_city: string;
   };
@@ -127,7 +131,21 @@ export default async function FurniturePage({ params }: { params: Promise<{ id: 
         </div>
         <p className="mt-1 text-xs text-ink-muted">
           {CATEGORY_LABELS[furniture.category]} · demande reçue le {formatDate(f.created_at)}
+          {f.source && <> · via {SOURCE_LABELS[f.source] ?? f.source}</>}
+          {f.contact_consent_at && <> · accepte d&apos;être recontacté (le {formatDate(f.contact_consent_at)})</>}
         </p>
+        {siblings && siblings.length > 1 && (
+          <nav aria-label="Pièces de la même demande" className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-ink-soft">Demande groupée · pièce {f.item_index} sur {siblings.length} :</span>
+            {siblings.map((s) =>
+              s.id === id ? (
+                <span key={s.id} aria-current="page" className="badge border-ink bg-ink text-paper">{s.item_index}. {s.name}</span>
+              ) : (
+                <Link key={s.id} href={`/meubles/${s.id}`} className="badge hover:bg-paper-alt">{s.item_index}. {s.name}</Link>
+              ),
+            )}
+          </nav>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">

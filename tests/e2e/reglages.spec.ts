@@ -24,7 +24,7 @@ test("les paramètres alimentent les variables des e-mails", async ({ page }) =>
   const f = await createTestFurniture();
   await page.goto("/reglages");
   await page.getByLabel("Nom de la boutique").fill("Remarq Atelier");
-  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Réglages enregistrés ✓");
   try {
     await page.goto(`/meubles/${f.id}`);
@@ -33,5 +33,20 @@ test("les paramètres alimentent les variables des e-mails", async ({ page }) =>
     await expect(page.getByLabel("Corps du message")).toHaveValue(/L'équipe Remarq Atelier$/);
   } finally {
     await supabase.from("settings").update({ value: "Remarq" }).eq("key", "shop_name");
+  }
+});
+
+test("le barème de partage modifié s'affiche sur le formulaire public", async ({ page }) => {
+  const supabase = adminClient();
+  const { data: before } = await supabase.from("settings").select("value").eq("key", "consignment_scale").single();
+  try {
+    await page.goto("/reglages");
+    await page.getByLabel("Pourcentage de la tranche 1").fill("45");
+    await page.getByRole("button", { name: "Enregistrer le barème" }).click();
+    await expect(page.getByRole("status")).toHaveText("Barème enregistré ✓");
+    await page.goto("/depot");
+    await expect(page.getByRole("row", { name: /Moins de 500/ })).toContainText("45 %");
+  } finally {
+    await supabase.from("settings").update({ value: before!.value }).eq("key", "consignment_scale");
   }
 });

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { FLOOR_LABELS } from "@/lib/labels";
 import { accessText, sellerAddress } from "@/lib/furniture";
+import { formatPhone } from "@/lib/depot/phone";
 import { updateSeller } from "@/app/(app)/meubles/[id]/actions";
 import type { Furniture } from "@/lib/types";
 
@@ -49,7 +50,7 @@ export function SellerSection({ furniture: f }: Props) {
           <dt className="text-ink-muted">E-mail</dt>
           <dd className="break-all"><a href={`mailto:${f.seller_email}`} className="underline">{f.seller_email}</a></dd>
           <dt className="text-ink-muted">Téléphone</dt>
-          <dd><a href={`tel:${f.seller_phone.replace(/[^+0-9]/g, "")}`} className="underline">{f.seller_phone}</a></dd>
+          <dd><a href={`tel:${f.seller_phone.replace(/[^+0-9]/g, "")}`} className="underline">{formatPhone(f.seller_phone)}</a></dd>
           <dt className="text-ink-muted">Adresse</dt>
           <dd>{address}</dd>
           <dt className="text-ink-muted">Accès</dt>

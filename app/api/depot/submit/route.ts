@@ -35,16 +35,17 @@ export async function POST(request: Request) {
 
   // Marque saisie librement : rattachée à la liste si elle y figure (casse ignorée).
   const { data: brands } = await supabase.from("brands").select("id, name").eq("active", true);
-  const brandIds = new Map((brands ?? []).map((b) => [b.name.trim().toLowerCase(), b.id]));
+  const knownBrands = new Map((brands ?? []).map((b) => [b.name.trim().toLowerCase(), b]));
 
   const now = new Date().toISOString();
   const rows = pieces.map((p, i) => {
-    const brandId = brandIds.get(p.brand.toLowerCase()) ?? null;
+    const known = knownBrands.get(p.brand.toLowerCase());
+    const brandId = known?.id ?? null;
     return {
       submission_id: submissionId,
       item_index: i + 1,
       source,
-      name: composeName({ itemType: p.itemType, brand: p.brand, model: p.model }),
+      name: composeName({ itemType: p.itemType, brand: known?.name ?? p.brand, model: p.model }),
       item_type: p.itemType,
       category: ITEM_TYPES[p.itemType].category,
       brand_id: brandId,

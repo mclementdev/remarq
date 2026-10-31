@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateListing, ListingError, toStoredListings } from "@/lib/ai/listing";
 import { CATEGORY_LABELS, CONDITION_LABELS, TIME_TYPE_LABELS, type Category, type Condition, type TimeType } from "@/lib/labels";
 import { formatNumber } from "@/lib/format";
+import { itemTypeLabel } from "@/lib/depot/item-types";
 
 export const maxDuration = 120;
 
@@ -40,14 +41,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const input = {
     "Nom / modèle": f.name,
+    "Type de pièce": itemTypeLabel(f.item_type),
     Catégorie: f.category ? CATEGORY_LABELS[f.category as Category] : null,
     Marque: f.brand_name,
+    Modèle: f.model,
+    Quantité: f.quantity && f.quantity > 1 ? `${f.quantity} pièces identiques vendues ensemble` : null,
     Designer: f.designer,
     "Année de fabrication": f.manufacture_year,
     Dimensions: dims,
     "Matières / couleur": f.materials,
     État: f.condition ? CONDITION_LABELS[f.condition as Condition] : null,
-    Défauts: f.defects,
+    "Note d'état donnée par le vendeur": f.condition_score !== null ? `${f.condition_score} / 10` : null,
+    "Détails sur l'état": f.defects,
     "Description du vendeur": f.description,
     "Notes internes": (notes ?? []).map((n) => n.body).filter(Boolean).join(" / ") || null,
     "Travaux effectués": works.length ? [...new Set(works)].join(", ") : null,

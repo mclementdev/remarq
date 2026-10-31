@@ -106,3 +106,12 @@ export type NonConformChoice = keyof typeof NON_CONFORM_CHOICE_LABELS;
 
 export const CERTIFICATION_TEXT =
   "Je certifie que ce meuble est authentique et que je suis bien le propriétaire de cet objet.";
+
+/** Provenance d'une demande (QR codes et liens courts /d/<source>). */
+export const SOURCE_LABELS: Record<string, string> = {
+  stand: "Stand du salon",
+  carte: "Carte de visite",
+  flyer: "Flyer",
+  ig: "Instagram",
+  carjager: "CarJager",
+};

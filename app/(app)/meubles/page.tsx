@@ -187,8 +187,14 @@ export default async function MeublesPage({ searchParams }: { searchParams: Prom
                 <tr key={r.id} className="group relative border-t border-line-soft hover:bg-paper-alt">
                   <td className="px-3 py-2"><Thumb src={r.thumb_path ? thumbs[r.thumb_path] : null} alt="" size={40} /></td>
                   <td className="px-3 py-2">
-                    <Link href={href} className="font-medium after:absolute after:inset-0 hover:underline">{r.name}</Link>
-                    <div className="text-xs text-ink-muted">{r.seller_first_name} {r.seller_last_name}</div>
+                    <Link href={href} className="font-medium after:absolute after:inset-0 hover:underline">
+                      {(r.quantity ?? 1) > 1 && <span className="mr-1 text-accent">×{r.quantity}</span>}
+                      {r.name}
+                    </Link>
+                    <div className="text-xs text-ink-muted">
+                      {[r.seller_first_name, r.seller_last_name].filter(Boolean).join(" ")}
+                      {(r.submission_size ?? 0) > 1 && ` · pièce ${r.item_index}/${r.submission_size}`}
+                    </div>
                   </td>
                   <td className="px-3 py-2">{r.brand_name}</td>
                   <td className="px-3 py-2">{r.category ? CATEGORY_LABELS[r.category] : "—"}</td>

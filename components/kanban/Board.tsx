@@ -46,10 +46,18 @@ function CardBody({ card, settings }: { card: BoardCard; settings: AppSettings }
     <div className="flex gap-2.5">
       <Thumb src={card.thumbUrl} alt="" size={52} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium leading-5">{card.name}</p>
+        <p className="truncate text-[13px] font-medium leading-5">
+          {(card.quantity ?? 1) > 1 && <span className="mr-1 text-accent">×{card.quantity}</span>}
+          {card.name}
+        </p>
         <p className="truncate text-xs text-ink-soft">{card.brand_name}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <ModeBadge mode={card.mode} />
+          {(card.submission_size ?? 0) > 1 && (
+            <span className="badge border-line text-ink-soft" title="Pièce d'une demande groupée">
+              {card.item_index}/{card.submission_size}
+            </span>
+          )}
           {card.expected_sale_price !== null && <span className="text-xs">{formatEuro(card.expected_sale_price)}</span>}
         </div>
         <p className={clsx("mt-1 text-[11px]", counter?.expired ? "text-danger" : "text-ink-muted")}>

@@ -2,7 +2,7 @@
 
 Outil de **Remarq** (anciennement Mobilistore) : réception, suivi et mise en ligne de mobilier de design d'occasion (rachat / dépôt-vente). Servi sur `sell.remarq.fr` (en attendant : `remarq-ten.vercel.app`) ; la boutique remarq.fr reste sur Shopify, **sans connexion API** pour l'instant.
 Spécifications : `CAHIER_DES_CHARGES.md`, `EMAILS_MODELES.md`, et pour la suite `../ARCHITECTURE/BRIEF_CLAUDE_CODE_SHOPIFY.md` (hors dépôt).
-Pages publiques : `/depot` (formulaire de dépôt, **ne pas modifier sans demande explicite**), `/salon` (landing Époqu'Auto, textes dans `lib/content/salon.ts`), `/d/<source>` (liens courts des QR), `/confidentialite`.
+Pages publiques : `/depot` (formulaire de reprise en 3 étapes, plusieurs pièces par demande : `components/depot/`, textes `lib/content/depot.ts`, barème dans le réglage `consignment_scale`), `/salon` (landing Époqu'Auto, textes dans `lib/content/salon.ts`), `/d/<source>` (liens courts des QR), `/confidentialite`.
 Déploiement : `docs/DEPLOIEMENT.md` ; recette : `docs/RECETTE.md`.
 
 ## Stack
@@ -21,6 +21,7 @@ Déploiement : `docs/DEPLOIEMENT.md` ; recette : `docs/RECETTE.md`.
 - Montants en euros TTC, aucune TVA. Lignes d'ajustement signées : **dépense = montant négatif**.
 - Jours / ancienneté calculés en calendrier **Europe/Paris** (`lib/calc/aging.ts`).
 - Calculs métier (marge, ancienneté, dashboard) = fonctions pures dans `lib/calc/*`, couvertes par Vitest.
+- Formulaire de reprise : une ligne `furnitures` par pièce, regroupées par `submission_id` / `item_index` ; coordonnées recopiées sur chaque pièce. Type de pièce → catégorie (`lib/depot/item-types.ts`), note 0–10 → état (`lib/depot/condition.ts`), téléphone au format international (`lib/depot/phone.ts`). Même schéma Zod côté client et serveur (`lib/validation/depot.ts`).
 - Changement de statut uniquement via la fonction SQL `change_status()` (journalise dans `status_history`).
 - Clé secrète Supabase uniquement dans `lib/supabase/admin.ts` (`server-only`), utilisée seulement par les routes publiques contrôlées `app/api/depot/*` et `app/api/salon/*`.
 - Charte Remarq : Alte Haas Grotesk (`public/fonts`, licence à garder à côté), jetons dans `app/globals.css` (`@theme` : `cream`, `paper`, `ink`, `accent`…) et utilitaires `btn-primary`, `field`, `panel`, `badge`… Boutons en majuscules, rayon 2 px, aucune ombre. Logo : mot « REMARQ » provisoire tant que `public/brand/` ne contient pas les fichiers officiels — ne jamais inventer de logo.

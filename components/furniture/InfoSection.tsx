@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { CATEGORY_LABELS, CONDITION_LABELS, type Category, type Condition } from "@/lib/labels";
 import { formatEuro, formatNumber } from "@/lib/format";
 import { updateFurnitureInfo } from "@/app/(app)/meubles/[id]/actions";
+import { ITEM_TYPES, isItemType, itemTypeLabel, itemTypesByCategory } from "@/lib/depot/item-types";
+import { scoreLabel } from "@/lib/depot/condition";
 import type { Furniture } from "@/lib/types";
 
 const OTHER = "__other";
@@ -13,7 +15,7 @@ type Props = {
     Furniture,
     | "id" | "name" | "category" | "brand_id" | "brand_other" | "designer" | "manufacture_year" | "description"
     | "width_cm" | "depth_cm" | "height_cm" | "materials" | "condition" | "defects" | "purchase_year"
-    | "original_price" | "desired_price"
+    | "original_price" | "desired_price" | "item_type" | "model" | "quantity" | "condition_score"
   >;
   brandName: string | null;
   brands: { id: string; name: string; active: boolean }[];
@@ -33,6 +35,10 @@ export function InfoSection({ furniture: f, brandName, brands }: Props) {
   const [pending, startTransition] = useTransition();
   const initial = {
     name: f.name,
+    item_type: toStr(f.item_type),
+    model: toStr(f.model),
+    quantity: toStr(f.quantity),
+    condition_score: toStr(f.condition_score),
     category: f.category,
     brand: f.brand_id ?? (f.brand_other ? OTHER : ""),
     brand_other: toStr(f.brand_other),
@@ -59,6 +65,10 @@ export function InfoSection({ furniture: f, brandName, brands }: Props) {
     startTransition(async () => {
       const res = await updateFurnitureInfo(f.id, {
         name: v.name,
+        item_type: v.item_type || null,
+        model: v.model,
+        quantity: toNum(v.quantity),
+        condition_score: toNum(v.condition_score),
         category: v.category,
         brand_id: v.brand && v.brand !== OTHER ? v.brand : null,
         brand_other: v.brand === OTHER ? v.brand_other : null,
@@ -85,14 +95,18 @@ export function InfoSection({ furniture: f, brandName, brands }: Props) {
       ? `L ${formatNumber(f.width_cm)} × P ${formatNumber(f.depth_cm)} × H ${formatNumber(f.height_cm)} cm`
       : "—";
     const rows: [string, React.ReactNode][] = [
+      ["Type de pièce", itemTypeLabel(f.item_type) ?? "—"],
       ["Catégorie", CATEGORY_LABELS[f.category as Category]],
+      ["Modèle", f.model || "—"],
+      ["Quantité", f.quantity > 1 ? <strong>{f.quantity}</strong> : String(f.quantity)],
       ["Marque", brandName ? <>{brandName}{!f.brand_id && <span className="ml-2 text-xs text-ink-muted">(saisie libre)</span>}</> : "—"],
       ["Designer", f.designer || "—"],
       ["Année de fabrication", f.manufacture_year || "—"],
       ["Dimensions", dims],
       ["Matières / couleur", f.materials || "—"],
       ["État", CONDITION_LABELS[f.condition as Condition]],
-      ["Défauts", f.defects || "—"],
+      ["Note du vendeur", f.condition_score === null ? "—" : `${f.condition_score} / 10 · ${scoreLabel(f.condition_score)}`],
+      ["Détails sur l'état", f.defects || "—"],
       ["Année d'achat", f.purchase_year || "—"],
       ["Prix payé à l'origine", formatEuro(f.original_price)],
       ["Prix souhaité par le vendeur", formatEuro(f.desired_price)],
@@ -127,7 +141,30 @@ export function InfoSection({ furniture: f, brandName, brands }: Props) {
 
   return (
     <form onSubmit={save} className="space-y-4">
-      {input("name", "Nom / modèle", { required: true })}
+      {input("name", "Nom de la fiche", { required: true })}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label htmlFor="info-item_type" className="field-label">Type de pièce</label>
+          <select
+            id="info-item_type"
+            value={v.item_type}
+            onChange={(e) => {
+              const t = e.target.value;
+              setV((s) => ({ ...s, item_type: t, category: isItemType(t) ? ITEM_TYPES[t].category : s.category }));
+            }}
+            className="field"
+          >
+            <option value="">—</option>
+            {itemTypesByCategory().map((g) => (
+              <optgroup key={g.category} label={CATEGORY_LABELS[g.category]}>
+                {g.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        {input("model", "Modèle")}
+        {input("quantity", "Quantité", { inputMode: "numeric", required: true })}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="info-category" className="field-label">Catégorie</label>
@@ -159,14 +196,17 @@ export function InfoSection({ furniture: f, brandName, brands }: Props) {
         {input("height_cm", "Hauteur (cm)", { inputMode: "decimal" })}
       </div>
       {input("materials", "Matières / couleur")}
-      <div>
-        <label htmlFor="info-condition" className="field-label">État</label>
-        <select id="info-condition" value={v.condition} onChange={set("condition")} className="field">
-          {Object.entries(CONDITION_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-        </select>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="info-condition" className="field-label">État</label>
+          <select id="info-condition" value={v.condition} onChange={set("condition")} className="field">
+            {Object.entries(CONDITION_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </div>
+        {input("condition_score", "Note du vendeur (0 à 10)", { inputMode: "numeric" })}
       </div>
       <div>
-        <label htmlFor="info-defects" className="field-label">Défauts</label>
+        <label htmlFor="info-defects" className="field-label">Détails sur l&apos;état</label>
         <textarea id="info-defects" rows={3} value={v.defects} onChange={set("defects")} className="field" />
       </div>
       <div className="grid gap-4 sm:grid-cols-3">

@@ -36,3 +36,9 @@ export function toInternational(dial: string, number: string): string | null {
   const count = full.length - 1;
   return count >= 8 && count <= 15 ? full : null;
 }
+
+/** Affichage lisible : « +33612345678 » → « +33 6 12 34 56 78 » ; autres formats inchangés. */
+export function formatPhone(phone: string): string {
+  const m = phone.match(/^\+33(\d)(\d{8})$/);
+  return m ? `+33 ${m[1]} ${m[2].match(/\d{2}/g)!.join(" ")}` : phone;
+}
