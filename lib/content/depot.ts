@@ -19,13 +19,13 @@ export const depotContent = {
   },
 
   trust: ["Gratuit et sans engagement", "Réponse sous 48 h", "Prix plancher garanti"],
-  steps: ["Vos coordonnées", "Vos pièces", "Enlèvement"],
+  steps: ["Vos pièces", "Enlèvement", "Vos coordonnées"],
 
   seller: {
     title: "Faisons connaissance",
     intro: "Pour vous envoyer votre estimation. 30 secondes, promis.",
     phoneHint: "Pour organiser l'enlèvement et vous répondre sur WhatsApp si vous préférez.",
-    next: "Décrire mes pièces",
+    submit: "Envoyer ma demande",
   },
 
   pieces: {
@@ -49,7 +49,6 @@ export const depotContent = {
     title: "Organisons l'enlèvement",
     intro: "Où se trouvent vos pièces ? Nous convenons du créneau avec vous ensuite.",
     accessPlaceholder: "ex. escalier étroit, code d'accès, stationnement, plus de 10 pièces à inventorier…",
-    submit: "Envoyer ma demande",
   },
 
   draftSaved: "Brouillon enregistré sur cet appareil",

@@ -65,7 +65,7 @@ function Hero({ salon }: { salon?: { onSite: boolean; eyebrow: string } }) {
   const linkBtn = <a key="lien" href="#lien" className={salon?.onSite ? "btn-primary px-6 py-3.5" : "btn-dark px-6 py-3.5"}>{c.salonButtons.link}</a>;
   const nowBtn = <a key="now" href="#formulaire" className={salon?.onSite ? "btn-dark px-6 py-3.5" : "btn-primary px-6 py-3.5"}>{c.salonButtons.now}</a>;
   return (
-    <section className="bg-paper-alt pb-12 pt-12 sm:pt-20">
+    <header className="bg-paper-alt pb-12 pt-12 sm:pt-20">
       <div className={`${wrap} space-y-5`}>
         <p className="section-title">{salon?.eyebrow ?? c.hero.eyebrow}</p>
         <h1 className="text-5xl sm:text-7xl">{c.hero.title}</h1>
@@ -77,7 +77,7 @@ function Hero({ salon }: { salon?: { onSite: boolean; eyebrow: string } }) {
         </ul>
         {salon && <div className="flex flex-col gap-3 pt-3 sm:flex-row">{salon.onSite ? [linkBtn, nowBtn] : [nowBtn, linkBtn]}</div>}
       </div>
-    </section>
+    </header>
   );
 }
 

@@ -22,7 +22,7 @@ export const SELLER_KEY = "remarq-depot-vendeur-v2";
 /** Deux photos compressées et envoyées à la fois : évite de saturer un téléphone. */
 const uploadQueue = createLimiter(2);
 
-type Draft = { step: number; seller: SellerState; pickup: PickupState; pieces: Omit<PieceState, "photos">[] };
+type Draft = { seller: SellerState; pickup: PickupState; pieces: Omit<PieceState, "photos">[] };
 
 const piecePayload = (p: PieceState) => ({
   brand: p.brand,
@@ -51,10 +51,11 @@ function errorKey(path: PropertyKey[]): string {
   return [head, ...rest.slice(0, 2)].join(".");
 }
 
+/** Étapes : 1 pièces, 2 enlèvement, 3 coordonnées. */
 function stepOfError(key: string): number {
-  if (key.startsWith("pieces")) return 2;
-  if (["street", "postalCode", "city", "floor", "hasElevator", "accessNotes", "certified"].includes(key)) return 3;
-  return 1;
+  if (key.startsWith("pieces")) return 1;
+  if (["street", "postalCode", "city", "floor", "hasElevator", "accessNotes", "certified"].includes(key)) return 2;
+  return 3;
 }
 
 export function DepotForm({ brands, source = null }: { brands: { id: string; name: string }[]; source?: string | null }) {
@@ -82,9 +83,8 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
       if (draft) {
         setSeller({ ...EMPTY_SELLER, ...draft.seller });
         setPickup({ ...EMPTY_PICKUP, ...draft.pickup });
+        // Les photos ne sont pas gardées : on reprend à l'étape des pièces (la première).
         if (draft.pieces?.length) setPieces(draft.pieces.slice(0, MAX_PIECES).map((p) => ({ ...emptyPiece(), ...p, photos: [] })));
-        // Les photos ne sont pas gardées : on revient au plus à l'étape des pièces.
-        setStep(Math.min(Math.max(draft.step ?? 1, 1), 2));
       } else if (previous) {
         setSeller({ ...EMPTY_SELLER, ...previous.seller });
         setPickup({ ...EMPTY_PICKUP, ...previous.pickup });
@@ -99,12 +99,12 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
     if (!draftLoaded) return;
     const t = setTimeout(() => {
       try {
-        const draft: Draft = { step, seller, pickup, pieces: pieces.map(({ photos: _photos, ...rest }) => rest) };
+        const draft: Draft = { seller, pickup, pieces: pieces.map(({ photos: _photos, ...rest }) => rest) };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch {}
     }, 400);
     return () => clearTimeout(t);
-  }, [step, seller, pickup, pieces, draftLoaded]);
+  }, [seller, pickup, pieces, draftLoaded]);
 
   const clearError = (key: string) => {
     if (errors[key]) setErrors(({ [key]: _removed, ...rest }) => rest);
@@ -209,13 +209,6 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
     return map;
   };
 
-  const nextFromSeller = () => {
-    const parsed = sellerStepSchema.safeParse(seller);
-    if (!parsed.success) return fail(issuesToMap(parsed.error.issues), "Merci de compléter les champs signalés.");
-    setErrors({});
-    goTo(2);
-  };
-
   const photosPending = pieces.some((p) => p.photos.some((ph) => ph.status === "uploading"));
   const photosFailed = pieces.some((p) => p.photos.some((ph) => ph.status === "error"));
 
@@ -232,16 +225,23 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
     });
     if (Object.keys(map).length) return fail(map, "Merci de compléter les champs signalés.");
     setErrors({});
+    goTo(2);
+  };
+
+  const nextFromPickup = () => {
+    const parsed = pickupStepSchema.safeParse(pickupPayload(pickup, certified));
+    if (!parsed.success) return fail(issuesToMap(parsed.error.issues), "Merci de compléter les champs signalés.");
+    setErrors({});
     goTo(3);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 1) return nextFromSeller();
-    if (step === 2) return nextFromPieces();
+    if (step === 1) return nextFromPieces();
+    if (step === 2) return nextFromPickup();
 
-    const pickupCheck = pickupStepSchema.safeParse(pickupPayload(pickup, certified));
-    if (!pickupCheck.success) return fail(issuesToMap(pickupCheck.error.issues), "Merci de compléter les champs signalés.");
+    const sellerCheck = sellerStepSchema.safeParse(seller);
+    if (!sellerCheck.success) return fail(issuesToMap(sellerCheck.error.issues), "Merci de compléter les champs signalés.");
 
     const parsed = depotSchema.safeParse({
       submissionId,
@@ -268,7 +268,7 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
         const map: Record<string, string> = {};
         for (const issue of body.issues ?? []) map[errorKey(String(issue.path).split("."))] ??= issue.message;
         setSubmitting(false);
-        return fail(map, body.error ?? "L'envoi a échoué. Réessayez dans un instant.", stepOfError(Object.keys(map)[0] ?? "street"));
+        return fail(map, body.error ?? "L'envoi a échoué. Réessayez dans un instant.", stepOfError(Object.keys(map)[0] ?? ""));
       }
       try {
         localStorage.removeItem(DRAFT_KEY);
@@ -297,8 +297,8 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
     },
   });
 
-  const titles = [c.seller.title, c.pieces.title, c.pickup.title];
-  const intros = [c.seller.intro, c.pieces.intro, c.pickup.intro];
+  const titles = [c.pieces.title, c.pickup.title, c.seller.title];
+  const intros = [c.pieces.intro, c.pickup.intro, c.seller.intro];
 
   return (
     <div ref={topRef} className="scroll-mt-4 overflow-hidden rounded-ui border border-line bg-paper">
@@ -316,44 +316,8 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
           )}
         </div>
 
-        {/* ---------------------------------------------------------- 1 */}
+        {/* ---------------------------------------------------------- 1 · pièces */}
         {step === 1 && (
-          <div className="space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field id="firstName" label="Prénom" required error={errors.firstName}>
-                <input {...aria("firstName", errors.firstName)} autoComplete="given-name" {...sellerInput("firstName")} />
-              </Field>
-              <Field id="lastName" label="Nom" optional>
-                <input {...aria("lastName")} autoComplete="family-name" {...sellerInput("lastName")} />
-              </Field>
-            </div>
-            <Field id="email" label="E-mail" required error={errors.email}>
-              <input {...aria("email", errors.email)} type="email" inputMode="email" autoComplete="email" placeholder="vous@exemple.fr" {...sellerInput("email")} />
-            </Field>
-            <div>
-              <label htmlFor="phone" className="field-label">Téléphone<Req /></label>
-              <div className="flex">
-                <label htmlFor="phoneDial" className="sr-only">Indicatif</label>
-                <select id="phoneDial" autoComplete="tel-country-code" className="field w-auto shrink-0 rounded-r-none border-r-0 pr-7" {...sellerInput("phoneDial")}>
-                  {PHONE_COUNTRIES.map((p) => <option key={p.code} value={p.dial}>{p.flag} {p.dial}</option>)}
-                </select>
-                <input
-                  {...aria("phone", errors.phone, "phone-hint")}
-                  type="tel"
-                  autoComplete="tel-national"
-                  placeholder="6 12 34 56 78"
-                  className={clsx("field min-w-0 flex-1 rounded-l-none", errors.phone && "border-danger")}
-                  {...sellerInput("phone")}
-                />
-              </div>
-              <p id="phone-hint" className="field-hint">{c.seller.phoneHint}</p>
-              <ErrorText id="phone" error={errors.phone} />
-            </div>
-          </div>
-        )}
-
-        {/* ---------------------------------------------------------- 2 */}
-        {step === 2 && (
           <div className="space-y-5">
             <datalist id={brandListId}>
               {brands.map((b) => <option key={b.id} value={b.name} />)}
@@ -383,8 +347,8 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
           </div>
         )}
 
-        {/* ---------------------------------------------------------- 3 */}
-        {step === 3 && (
+        {/* ---------------------------------------------------------- 2 · enlèvement */}
+        {step === 2 && (
           <div className="space-y-5">
             <Field id="street" label="Adresse" required error={errors.street}>
               <input {...aria("street", errors.street)} autoComplete="street-address" {...pickupInput("street")} />
@@ -440,6 +404,42 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
           </div>
         )}
 
+        {/* ---------------------------------------------------------- 3 · coordonnées */}
+        {step === 3 && (
+          <div className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="firstName" label="Prénom" required error={errors.firstName}>
+                <input {...aria("firstName", errors.firstName)} autoComplete="given-name" {...sellerInput("firstName")} />
+              </Field>
+              <Field id="lastName" label="Nom" optional>
+                <input {...aria("lastName")} autoComplete="family-name" {...sellerInput("lastName")} />
+              </Field>
+            </div>
+            <Field id="email" label="E-mail" required error={errors.email}>
+              <input {...aria("email", errors.email)} type="email" inputMode="email" autoComplete="email" placeholder="vous@exemple.fr" {...sellerInput("email")} />
+            </Field>
+            <div>
+              <label htmlFor="phone" className="field-label">Téléphone<Req /></label>
+              <div className="flex">
+                <label htmlFor="phoneDial" className="sr-only">Indicatif</label>
+                <select id="phoneDial" autoComplete="tel-country-code" className="field w-auto shrink-0 rounded-r-none border-r-0 pr-7" {...sellerInput("phoneDial")}>
+                  {PHONE_COUNTRIES.map((p) => <option key={p.code} value={p.dial}>{p.flag} {p.dial}</option>)}
+                </select>
+                <input
+                  {...aria("phone", errors.phone, "phone-hint")}
+                  type="tel"
+                  autoComplete="tel-national"
+                  placeholder="6 12 34 56 78"
+                  className={clsx("field min-w-0 flex-1 rounded-l-none", errors.phone && "border-danger")}
+                  {...sellerInput("phone")}
+                />
+              </div>
+              <p id="phone-hint" className="field-hint">{c.seller.phoneHint}</p>
+              <ErrorText id="phone" error={errors.phone} />
+            </div>
+          </div>
+        )}
+
         {/* ---------------------------------------------------------- actions */}
         <div className="space-y-3">
           <div className="flex gap-3">
@@ -449,17 +449,17 @@ export function DepotForm({ brands, source = null }: { brands: { id: string; nam
               </button>
             )}
             <button type="submit" className="btn-primary flex-1 py-4" disabled={submitting}>
-              {step === 1 && <>{c.seller.next} <span aria-hidden>→</span></>}
-              {step === 2 && (photosPending ? "Photos en cours d'envoi…" : <>Continuer <span aria-hidden>→</span></>)}
-              {step === 3 && (submitting ? "Envoi en cours…" : c.pickup.submit)}
+              {step === 1 && (photosPending ? "Photos en cours d'envoi…" : <>Continuer <span aria-hidden>→</span></>)}
+              {step === 2 && <>Continuer <span aria-hidden>→</span></>}
+              {step === 3 && (submitting ? "Envoi en cours…" : c.seller.submit)}
             </button>
           </div>
-          {step === 1 && (
+          {step === 3 && (
             <p className="text-sm text-ink-soft">
               {CONTACT_CONSENT_TEXT} <Link href="/confidentialite" className="underline">Confidentialité</Link>
             </p>
           )}
-          {draftLoaded && hasInteracted.current && step > 1 && <p className="text-right text-xs text-ink-muted">{c.draftSaved}</p>}
+          {draftLoaded && hasInteracted.current && <p className="text-right text-xs text-ink-muted">{c.draftSaved}</p>}
         </div>
       </form>
     </div>

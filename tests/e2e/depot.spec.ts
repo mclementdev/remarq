@@ -7,14 +7,6 @@ const FILES = ["meuble-1.jpg", "meuble-2.jpg", "meuble-3.jpg", "meuble-4.jpg"];
 const photos = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ name: `photo-${i + 1}.jpg`, mimeType: "image/jpeg", buffer: fs.readFileSync(fixture(FILES[i % FILES.length])) }));
 
-async function fillSeller(page: Page, email: string) {
-  await page.locator("#firstName").fill("Claire");
-  await page.locator("#email").fill(email);
-  await page.locator("#phone").fill("06 12 34 56 78");
-  await page.getByRole("button", { name: /Décrire mes pièces/ }).click();
-  await expect(page.getByRole("heading", { name: "Parlez-nous de vos pièces" })).toBeVisible();
-}
-
 async function fillPiece(page: Page, n: number, { brand, model, type, quantity = "1", score, photoCount }: { brand: string; model?: string; type: string; quantity?: string; score?: number; photoCount: number }) {
   const piece = page.getByRole("region", { name: `Pièce ${n}` });
   await piece.getByLabel("Marque ou designer").fill(brand);
@@ -27,7 +19,8 @@ async function fillPiece(page: Page, n: number, { brand, model, type, quantity =
   await expect(piece.getByText("✓ Envoyée")).toHaveCount(photoCount, { timeout: 60_000 });
 }
 
-async function fillPickupAndSend(page: Page) {
+/** Étape 2 (enlèvement) puis passage à l'étape 3 (coordonnées). */
+async function fillPickup(page: Page) {
   await page.getByRole("button", { name: /Continuer/ }).click();
   await expect(page.getByRole("heading", { name: "Organisons l'enlèvement" })).toBeVisible();
   await page.getByLabel("Adresse").fill("12 rue des Lilas");
@@ -36,6 +29,14 @@ async function fillPickupAndSend(page: Page) {
   await page.getByLabel("Étage").selectOption({ label: "3e étage" });
   await page.getByLabel("Oui").check();
   await page.getByRole("checkbox", { name: /Je certifie/ }).check();
+  await page.getByRole("button", { name: /Continuer/ }).click();
+  await expect(page.getByRole("heading", { name: "Faisons connaissance" })).toBeVisible();
+}
+
+async function fillSellerAndSend(page: Page, email: string) {
+  await page.locator("#firstName").fill("Claire");
+  await page.locator("#email").fill(email);
+  await page.locator("#phone").fill("06 12 34 56 78");
   await page.getByRole("button", { name: "Envoyer ma demande" }).click();
   await expect(page).toHaveURL(/\/depot\/merci/);
 }
@@ -49,19 +50,8 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test("étape 1 : champs obligatoires et téléphone vérifiés", async ({ page }) => {
-  await page.getByRole("button", { name: /Décrire mes pièces/ }).click();
-  await expect(page.getByText("Indiquez votre prénom.")).toBeVisible();
-  await page.getByLabel("Prénom").fill("Claire");
-  await page.getByLabel("E-mail").fill("claire@example.com");
-  await page.locator("#phone").fill("12");
-  await page.getByRole("button", { name: /Décrire mes pièces/ }).click();
-  await expect(page.getByText("Numéro de téléphone invalide.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Faisons connaissance" })).toBeVisible();
-});
-
-test("étape 2 : bloque sans photo, puis brouillon retrouvé après rechargement", async ({ page }) => {
-  await fillSeller(page, "brouillon@example.com");
+test("étape 1 : bloque sans photo, puis brouillon retrouvé après rechargement", async ({ page }) => {
+  await expect(page.getByRole("heading", { name: "Parlez-nous de vos pièces" })).toBeVisible();
   const piece = page.getByRole("region", { name: "Pièce 1" });
   await piece.getByLabel("Marque ou designer").fill("Knoll");
   await page.getByRole("button", { name: /Continuer/ }).click();
@@ -72,15 +62,24 @@ test("étape 2 : bloque sans photo, puis brouillon retrouvé après rechargement
   await page.reload();
   await expect(page.getByRole("heading", { name: "Parlez-nous de vos pièces" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Pièce 1" }).getByLabel("Marque ou designer")).toHaveValue("Knoll");
-  await page.getByRole("button", { name: /Retour/ }).click();
-  await expect(page.getByLabel("E-mail")).toHaveValue("brouillon@example.com");
 });
 
 test("un vendeur dépose une pièce depuis son téléphone", async ({ page }) => {
   const email = `une-piece-${Date.now()}@example.com`;
-  await fillSeller(page, email);
   await fillPiece(page, 1, { brand: "ibisco", model: "Safari", type: "Fauteuil ou chauffeuse", score: 9, photoCount: 3 });
-  await fillPickupAndSend(page);
+  await fillPickup(page);
+
+  // Étape 3 : champs obligatoires et téléphone vérifiés.
+  await page.getByRole("button", { name: "Envoyer ma demande" }).click();
+  await expect(page.getByText("Indiquez votre prénom.")).toBeVisible();
+  await page.locator("#firstName").fill("Claire");
+  await page.locator("#email").fill(email);
+  await page.locator("#phone").fill("12");
+  await page.getByRole("button", { name: "Envoyer ma demande" }).click();
+  await expect(page.getByText("Numéro de téléphone invalide.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faisons connaissance" })).toBeVisible();
+
+  await fillSellerAndSend(page, email);
   await expect(page.getByText("Nous avons bien reçu votre demande.")).toBeVisible();
 
   const supabase = adminClient();
@@ -115,21 +114,22 @@ test("un vendeur dépose une pièce depuis son téléphone", async ({ page }) =>
   expect(ph).toHaveLength(3);
   expect(ph![0].is_main).toBe(true);
 
-  // « Proposer d'autres pièces » : coordonnées et adresse pré-remplies.
+  // « Proposer d'autres pièces » : coordonnées et adresse gardées pour la prochaine demande.
   await page.getByRole("link", { name: "Proposer d'autres pièces" }).click();
-  await expect(page.getByLabel("E-mail")).toHaveValue(email);
+  await expect(page.getByRole("heading", { name: "Parlez-nous de vos pièces" })).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem("remarq-depot-vendeur-v2"))).toContain(email);
 });
 
 test("deux pièces (dont une à 10 photos) depuis le salon via Instagram", async ({ page }) => {
   test.setTimeout(180_000);
   const email = `deux-pieces-${Date.now()}@example.com`;
   await page.goto("/salon?source=ig#formulaire");
-  await fillSeller(page, email);
   await fillPiece(page, 1, { brand: "Inconnu", type: "Luminaire", quantity: "2", score: 3, photoCount: 3 });
   await page.getByRole("button", { name: "Ajouter une autre pièce" }).click();
   await fillPiece(page, 2, { brand: "Pierre Paulin", model: "Pumpkin", type: "Canapé", photoCount: 10 });
   await expect(page.getByRole("region", { name: "Pièce 2" }).getByText("Ajouter d'autres photos")).toHaveCount(0);
-  await fillPickupAndSend(page);
+  await fillPickup(page);
+  await fillSellerAndSend(page, email);
   await expect(page.getByText("votre demande pour 2 pièces")).toBeVisible();
 
   const supabase = adminClient();
