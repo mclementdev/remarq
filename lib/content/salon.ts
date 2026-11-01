@@ -21,19 +21,12 @@ export const salonContent = {
     shareTagline: "Rachat ou dépôt-vente · enlèvement organisé",
   },
 
-  // PROVISOIRE
+  // PROVISOIRE — la page elle-même reprend les textes de lib/content/vendre.ts ;
+  // `eyebrow` remplace « Particuliers » au-dessus du titre, `title` sert à l'image de partage.
   hero: {
     eyebrow: "Époqu'Auto Lyon · stand CarJager",
     title: "Vos meubles de design méritent une seconde vie",
-    promise: "Décrivez votre pièce en quelques minutes. Nous vous faisons une proposition de rachat ou de dépôt-vente, et nous organisons l'enlèvement.",
   },
-
-  // PROVISOIRE
-  steps: [
-    { title: "Vous décrivez votre meuble", text: "Quelques photos et informations, depuis votre téléphone." },
-    { title: "Nous vous faisons une proposition", text: "Rachat direct ou dépôt-vente, à vous de choisir." },
-    { title: "Nous venons le chercher", text: "Enlèvement chez vous, sur le créneau qui vous convient." },
-  ],
 
   // PROVISOIRE
   lead: {
@@ -54,13 +47,6 @@ export const salonContent = {
   /** Texte enregistré avec chaque consentement (preuve) : à aligner sur la case ci-dessus. */
   consentRecord:
     "J'accepte que Remarq utilise mon e-mail uniquement pour m'envoyer le lien du formulaire et le rappel demandé.",
-
-  // PROVISOIRE
-  form: {
-    ctaNow: "Remplir le formulaire maintenant",
-    title: "Décrivez votre meuble",
-    intro: "Comptez cinq minutes et trois photos minimum.",
-  },
 
   // PROVISOIRE
   email: {

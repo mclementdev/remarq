@@ -20,13 +20,13 @@ const ICONS: Record<string, React.ReactNode> = {
   euro: <path d="M17 6.5A6 6 0 1 0 17 17.5M5 10.5h8M5 13.5h8" />,
 };
 
-/** Accroche de la page /depot. */
+/** Accroche de la colonne de gauche, à côté du formulaire. */
 export function DepotIntroHeader() {
   return (
     <div className="space-y-4">
       <p className="section-title">{c.eyebrow}</p>
-      <h1 className="text-3xl leading-tight sm:text-4xl lg:text-5xl">{c.title}</h1>
-      <p className="text-ink-soft">{c.text}</p>
+      <h2 className="text-4xl sm:text-5xl">{c.title}</h2>
+      <p className="text-sm text-ink-soft sm:text-base">{c.text}</p>
     </div>
   );
 }
@@ -38,19 +38,19 @@ export function DepotIntro({ scale }: { scale: ScaleRow[] }) {
       <ul className="space-y-5">
         {c.benefits.map((b) => (
           <li key={b.title} className="flex gap-4">
-            <svg aria-hidden viewBox="0 0 24 24" className="mt-0.5 h-6 w-6 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               {ICONS[b.icon]}
             </svg>
             <div>
-              <p className="font-bold">{b.title}</p>
-              <p className="text-ink-soft">{b.text}</p>
+              <p className="font-semibold">{b.title}</p>
+              <p className="text-sm text-ink-soft">{b.text}</p>
             </div>
           </li>
         ))}
       </ul>
 
       <section aria-labelledby="bareme-title" className="border-t border-line pt-6">
-        <h2 id="bareme-title" className="mb-3 text-base font-bold">{c.scaleTitle}</h2>
+        <h3 id="bareme-title" className="mb-3 font-semibold">{c.scaleTitle}</h3>
         <table className="w-full text-left">
           <thead>
             <tr className="text-sm text-ink-soft">
@@ -62,7 +62,7 @@ export function DepotIntro({ scale }: { scale: ScaleRow[] }) {
             {scaleLabels(scale).map((r) => (
               <tr key={r.label} className="border-t border-line-soft">
                 <td className="py-3">{r.label}</td>
-                <td className="py-3 text-right text-2xl">{r.percent} %</td>
+                <td className="py-3 text-right font-[family-name:var(--font-site-serif)] text-3xl">{r.percent} %</td>
               </tr>
             ))}
           </tbody>

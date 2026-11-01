@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DepotForm } from "@/components/depot/DepotForm";
-import { LeadForm } from "@/components/salon/LeadForm";
-import { DepotIntro } from "@/components/depot/DepotIntro";
+import { SellPage } from "@/components/site/SellPage";
 import { getConsignmentScale } from "@/lib/settings";
 import { ON_SITE_SOURCES, parseSource, salonContent as c } from "@/lib/content/salon";
 
@@ -26,60 +24,5 @@ export default async function SalonPage({ searchParams }: { searchParams: Promis
     getConsignmentScale(supabase),
   ]);
 
-  const leadBlock = (
-    <section id="lien" aria-labelledby="lien-title" className="scroll-mt-6 space-y-4 rounded-ui border border-line bg-paper p-5 sm:p-6">
-      <h2 id="lien-title" className="text-xl">{c.lead.title}</h2>
-      <p className="text-ink-soft">{c.lead.intro}</p>
-      <LeadForm source={source} />
-    </section>
-  );
-
-  return (
-    <div className="space-y-12">
-      <header className="space-y-4 text-center">
-        <p className="section-title">{c.hero.eyebrow}</p>
-        <h1 className="text-3xl leading-tight sm:text-4xl">{c.hero.title}</h1>
-        <p className="text-ink-soft">{c.hero.promise}</p>
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-center">
-          {onSite ? (
-            <>
-              <a href="#lien" className="btn-primary py-4">{c.lead.title}</a>
-              <a href="#formulaire" className="btn-secondary py-4">{c.form.ctaNow}</a>
-            </>
-          ) : (
-            <>
-              <a href="#formulaire" className="btn-primary py-4">{c.form.ctaNow}</a>
-              <a href="#lien" className="btn-secondary py-4">{c.lead.title}</a>
-            </>
-          )}
-        </div>
-      </header>
-
-      {onSite && leadBlock}
-
-      <section aria-labelledby="etapes-title">
-        <h2 id="etapes-title" className="sr-only">Comment ça marche</h2>
-        <ol className="grid gap-4 sm:grid-cols-3">
-          {c.steps.map((s, i) => (
-            <li key={s.title} className="space-y-1 border-t-2 border-accent pt-3">
-              <p className="text-sm font-bold text-accent">{i + 1}</p>
-              <p className="font-bold">{s.title}</p>
-              <p className="text-sm text-ink-soft">{s.text}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {!onSite && leadBlock}
-
-      <section id="formulaire" aria-labelledby="formulaire-title" className="scroll-mt-6 space-y-6 border-t border-line pt-10">
-        <div className="space-y-2 text-center">
-          <h2 id="formulaire-title" className="text-2xl">{c.form.title}</h2>
-          <p className="text-ink-soft">{c.form.intro}</p>
-        </div>
-        <DepotForm brands={brands ?? []} source={source} />
-        <DepotIntro scale={scale} />
-      </section>
-    </div>
-  );
+  return <SellPage brands={brands ?? []} scale={scale} source={source} salon={{ onSite, eyebrow: c.hero.eyebrow }} />;
 }

@@ -101,3 +101,59 @@
 @utility section-title {
   @apply text-xs font-medium uppercase tracking-button text-ink-soft;
 }
+
+/*
+ * Pages publiques (/depot, /salon, Merci, confidentialité) : style de la page « Vendre »
+ * du site (Instrument Sans / Serif, blanc, beige, noir, orange, boutons en pilule).
+ * On redéfinit les jetons dans `.site` : le formulaire de reprise suit sans réécriture,
+ * et l'outil interne garde sa charte.
+ * Contrastes : texte 18:1 · secondaire ≥ 7:1 · bouton orange avec texte noir 6,4:1.
+ */
+.site {
+  --color-cream: #ffffff;
+  --color-paper: #ffffff;
+  --color-paper-alt: #efece5;
+  --color-ink: #111111;
+  --color-ink-soft: #444444;
+  --color-ink-muted: #5f5f5f;
+  --color-line: #cfccc4;
+  --color-line-soft: #e4e1d9;
+  --color-night: #2b2b2b;
+  --color-accent: #ff4f00;
+  --color-accent-hover: #e64700;
+  --radius-ui: 4px;
+  --radius-badge: 999px;
+  font-family: var(--font-site-sans), "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+.site :is(h1, h2) {
+  font-family: var(--font-site-serif), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.site :is(.btn, .btn-primary, .btn-secondary, .btn-dark, .btn-ghost, .btn-danger) {
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.875rem;
+}
+.site .btn-primary {
+  color: var(--color-ink);
+}
+.site .btn-sm {
+  font-size: 0.8125rem;
+}
+.site .section-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+}
+.site :is(h3, h4) {
+  font-weight: 500;
+  letter-spacing: 0;
+}

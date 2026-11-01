@@ -13,6 +13,18 @@ const brand = localFont({
   ],
 });
 
+// Pages publiques (classe `site`) : Instrument Sans et Instrument Serif, licence OFL à côté des fichiers.
+const siteSans = localFont({
+  variable: "--font-site-sans",
+  display: "swap",
+  src: [{ path: "../public/fonts/instrument-sans/InstrumentSans-Variable.ttf", weight: "400 700", style: "normal" }],
+});
+const siteSerif = localFont({
+  variable: "--font-site-serif",
+  display: "swap",
+  src: [{ path: "../public/fonts/instrument-serif/InstrumentSerif-Regular.ttf", weight: "400", style: "normal" }],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: { default: "Remarq — outil interne", template: "%s · Remarq" },
@@ -24,7 +36,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={brand.variable}>
+    <html lang="fr" className={`${brand.variable} ${siteSans.variable} ${siteSerif.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );
