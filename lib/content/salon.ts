@@ -33,10 +33,8 @@ export const salonContent = {
     title: "Recevez le lien pour plus tard",
     intro: "Laissez-nous votre e-mail : nous vous envoyons le lien du formulaire pour le remplir tranquillement, chez vous.",
     emailLabel: "Votre e-mail",
-    reminderLabel: "Me le rappeler le (facultatif)",
-    reminderHint: "Vous recevrez une invitation à ajouter à votre agenda.",
     consentLabel:
-      "J'accepte que Remarq utilise mon e-mail uniquement pour m'envoyer ce lien et ce rappel.",
+      "J'accepte que Remarq utilise mon e-mail uniquement pour m'envoyer ce lien.",
     submit: "Recevoir le lien",
     submitting: "Envoi…",
     successTitle: "C'est envoyé !",
@@ -46,7 +44,7 @@ export const salonContent = {
 
   /** Texte enregistré avec chaque consentement (preuve) : à aligner sur la case ci-dessus. */
   consentRecord:
-    "J'accepte que Remarq utilise mon e-mail uniquement pour m'envoyer le lien du formulaire et le rappel demandé.",
+    "J'accepte que Remarq utilise mon e-mail uniquement pour m'envoyer le lien du formulaire.",
 
   // PROVISOIRE
   email: {
@@ -54,12 +52,8 @@ export const salonContent = {
     greeting: "Bonjour,",
     body: "Merci pour votre visite sur le stand. Voici le lien pour nous présenter vos meubles de design, quand vous le souhaitez :",
     cta: "Décrire mon meuble",
-    reminderLine: "Comme demandé, l'invitation jointe vous le rappellera le",
-    calendarCta: "Ajouter à Google Agenda",
     signature: "L'équipe Remarq",
     footer: "Vous recevez cet e-mail car vous l'avez demandé sur le stand Remarq. Votre adresse ne sert qu'à cet envoi.",
-    eventTitle: "Remarq : décrire mon meuble",
-    eventDescription: "Le formulaire pour confier vos meubles à Remarq :",
   },
 } as const;
 

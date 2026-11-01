@@ -9,11 +9,10 @@ type State =
   | { step: "form" }
   | { step: "done"; emailSent: boolean; formUrl: string };
 
-/** CTA « Recevez le lien pour plus tard » : e-mail obligatoire, rappel facultatif. */
+/** CTA « Recevez le lien pour plus tard » : e-mail et consentement. */
 export function LeadForm({ source }: { source: SalonSource }) {
   const t = salonContent.lead;
   const [email, setEmail] = useState("");
-  const [remindAt, setRemindAt] = useState("");
   const [consent, setConsent] = useState(false);
   const [website, setWebsite] = useState("");
   const [errors, setErrors] = useState<{ field?: string; message: string } | null>(null);
@@ -48,7 +47,7 @@ export function LeadForm({ source }: { source: SalonSource }) {
       const res = await fetch("/api/salon/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, remindAt: remindAt || null, consent, source, website }),
+        body: JSON.stringify({ email, consent, source, website }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -87,20 +86,6 @@ export function LeadForm({ source }: { source: SalonSource }) {
         {errorFor("email")}
       </div>
 
-      <div>
-        <label htmlFor="lead-remind" className="field-label">{t.reminderLabel}</label>
-        <input
-          id="lead-remind"
-          type="datetime-local"
-          value={remindAt}
-          onChange={(e) => setRemindAt(e.target.value)}
-          aria-describedby="lead-remind-hint"
-          className={clsx("field py-3 text-base", errors?.field === "remindAt" && "border-danger")}
-        />
-        <p id="lead-remind-hint" className="field-hint">{t.reminderHint}</p>
-        {errorFor("remindAt")}
-      </div>
-
       {/* Champ piège pour les robots : invisible et ignoré par les lecteurs d'écran. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
         <label htmlFor="lead-website">Site web</label>
@@ -122,7 +107,7 @@ export function LeadForm({ source }: { source: SalonSource }) {
       </label>
       {errorFor("consent")}
 
-      {errors && !["email", "remindAt", "consent"].includes(errors.field ?? "") && (
+      {errors && !["email", "consent"].includes(errors.field ?? "") && (
         <p role="alert" className="rounded-ui border border-danger bg-paper p-3 text-sm text-danger">{errors.message}</p>
       )}
 

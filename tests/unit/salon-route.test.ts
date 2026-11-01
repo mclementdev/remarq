@@ -51,18 +51,12 @@ describe("POST /api/salon/leads", () => {
     const res = await post({ email: "a@b.fr", consent: true, source: "flyer" });
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, emailSent: true, formUrl: "http://localhost:3100/depot" });
-    expect(db.inserted[0]).toMatchObject({ email: "a@b.fr", source: "flyer", consent: true, remind_at: null });
+    expect(db.inserted[0]).toMatchObject({ email: "a@b.fr", source: "flyer", consent: true });
+    expect(db.inserted[0]).not.toHaveProperty("remind_at");
     expect(db.inserted[0].ip_hash).toMatch(/^[0-9a-f]{64}$/);
     expect(db.inserted[0].ip_hash).not.toContain("1.2.3.4");
     expect(sendEmail).toHaveBeenCalledOnce();
     expect(db.updates[0]).toHaveProperty("email_sent_at");
-  });
-
-  it("joint le .ics quand une date de rappel est choisie", async () => {
-    const nextWeek = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-    const res = await post({ email: "a@b.fr", consent: true, source: "stand", remindAt: `${nextWeek}T09:30` });
-    expect(res.status).toBe(200);
-    expect(sendEmail.mock.calls[0][0].attachments[0].filename).toBe("rappel-remarq.ics");
   });
 
   it("429 au-delà de 5 envois en 10 minutes", async () => {

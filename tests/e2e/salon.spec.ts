@@ -13,6 +13,7 @@ test("visiteur sur le stand : reçoit le lien et voit le formulaire en bas de pa
   const hero = page.locator("header", { has: page.getByRole("heading", { level: 1 }) });
   await expect(hero.getByRole("link").first()).toHaveText("Recevez le lien pour plus tard");
 
+  await expect(page.getByText("Me le rappeler")).toHaveCount(0);
   await page.getByLabel("Votre e-mail").fill(email);
   await page.getByRole("button", { name: "Recevoir le lien" }).click();
   await expect(page.getByText("Merci d'accepter l'utilisation de votre e-mail.")).toBeVisible();
@@ -37,20 +38,6 @@ test("« Obtenir mon estimation gratuite » ramène au formulaire", async ({ pag
   await page.getByRole("link", { name: "Obtenir mon estimation gratuite" }).click();
   await expect(page).toHaveURL(/#formulaire$/);
   await expect(page.getByRole("heading", { name: "Parlez-nous de vos pièces" })).toBeInViewport();
-});
-
-test("rappel facultatif enregistré en heure de Paris", async ({ page }) => {
-  const email = `rappel-${Date.now()}@exemple.fr`;
-  const day = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
-  await page.goto("/salon?source=stand");
-  await page.getByLabel("Votre e-mail").fill(email);
-  await page.getByLabel("Me le rappeler le (facultatif)").fill(`${day}T18:30`);
-  await page.getByRole("checkbox", { name: /J'accepte/ }).check();
-  await page.getByRole("button", { name: "Recevoir le lien" }).click();
-  await expect(page.getByRole("status")).toContainText("C'est envoyé !");
-  const { data } = await adminClient().from("salon_leads").select("remind_at").eq("email", email).single();
-  const local = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }).format(new Date(data!.remind_at!));
-  expect(local).toBe(`${day} 18:30`);
 });
 
 test("visiteur venant d'Instagram : le formulaire est mis en avant", async ({ page }) => {

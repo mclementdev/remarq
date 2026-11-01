@@ -41,7 +41,6 @@ export async function POST(request: Request) {
     .from("salon_leads")
     .insert({
       email: parsed.email,
-      remind_at: parsed.remindAt?.toISOString() ?? null,
       source: parsed.source,
       consent: true,
       consent_text: salonContent.consentRecord,
@@ -51,7 +50,7 @@ export async function POST(request: Request) {
     .single();
   if (error || !lead) return NextResponse.json({ error: "Votre demande n'a pas pu être enregistrée. Réessayez." }, { status: 500 });
 
-  const result = await sendEmail(buildSalonEmail({ to: parsed.email, formUrl, remindAt: parsed.remindAt, leadId: lead.id }));
+  const result = await sendEmail(buildSalonEmail({ to: parsed.email, formUrl }));
   await supabase
     .from("salon_leads")
     .update(result.ok ? { email_sent_at: new Date().toISOString() } : { email_error: result.error.slice(0, 500) })

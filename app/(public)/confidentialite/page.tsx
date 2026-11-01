@@ -17,7 +17,7 @@ export default function ConfidentialitePage() {
         </section>
         <section className="space-y-2">
           <h2 className="text-2xl">Votre e-mail laissé sur la page du salon</h2>
-          <p>Il sert uniquement à vous envoyer le lien du formulaire et, si vous l&apos;avez demandé, une invitation de rappel. Il n&apos;est ni revendu ni utilisé pour de la prospection. Conservation : [à compléter, par exemple 6 mois].</p>
+          <p>Il sert uniquement à vous envoyer le lien du formulaire. Il n&apos;est ni revendu ni utilisé pour de la prospection. Conservation : [à compléter, par exemple 6 mois].</p>
         </section>
         <section className="space-y-2">
           <h2 className="text-2xl">Les informations du formulaire de dépôt</h2>
