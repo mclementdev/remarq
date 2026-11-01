@@ -9,29 +9,31 @@ Cochez au fur et à mesure ; notez tout écart avec une capture d'écran.
 - [ ] Les QR imprimés (épreuve) font au moins 2 × 2 cm et gardent leur marge blanche ; ils se scannent à 30 cm.
 
 ## B. Landing `/salon`
-- [ ] Arrivée par `/d/carte` : le premier bouton est « Recevez le lien pour plus tard ».
-- [ ] Arrivée par `/d/ig` : le premier bouton est « Remplir le formulaire maintenant ».
-- [ ] Textes relus et validés dans `lib/content/salon.ts` (plus aucun bloc « PROVISOIRE »).
-- [ ] Police Alte Haas Grotesk, fond crème, boutons rouge brique ; rien ne déborde à l'écran.
+- [ ] Arrivée par `/d/carte` : le premier bouton est « Recevez le lien pour plus tard » et le bloc e-mail est juste sous l'accroche.
+- [ ] Arrivée par `/d/ig` : le premier bouton est « Remplir le formulaire maintenant » ; le bloc e-mail est sous le formulaire.
+- [ ] Même page que `/depot` (accroche, formulaire, comment ça marche, avis, ce que nous prenons, FAQ, pied de page) ; pas de menu en haut.
+- [ ] « Obtenir mon estimation gratuite » (bandeau noir) remonte au formulaire.
+- [ ] Textes relus et validés dans `lib/content/vendre.ts` et `lib/content/salon.ts` (plus aucun bloc « PROVISOIRE », réponses de la FAQ comprises).
+- [ ] Liens du pied de page : chacun ouvre la bonne page de remarq.fr.
+- [ ] Polices Instrument Serif (titres) et Instrument Sans, boutons orange arrondis ; rien ne déborde à l'écran.
 - [ ] Partage du lien dans WhatsApp ou iMessage : l'aperçu montre le titre et l'image Remarq.
 
 ## C. Lien par e-mail
 - [ ] Sans cocher le consentement : message « Merci d'accepter… », rien n'est envoyé.
 - [ ] Avec une adresse mal tapée : message « Adresse e-mail invalide ».
-- [ ] 📶 Envoi sans date de rappel : écran « C'est envoyé ! » ; e-mail reçu en moins d'une minute, pas dans les indésirables, lien du formulaire fonctionnel.
-- [ ] 📶 Envoi avec une date de rappel : l'e-mail contient la pièce jointe `rappel-remarq.ics` (ajout dans l'agenda iPhone à la bonne heure) et le bouton « Ajouter à Google Agenda » (bonne date et heure sur Android).
+- [ ] 📶 Envoi : écran « C'est envoyé ! » ; e-mail reçu en moins d'une minute, pas dans les indésirables, lien du formulaire fonctionnel.
 - [ ] Gmail → *Afficher l'original* : SPF PASS, DKIM PASS.
-- [ ] *Supabase → salon_leads* : la ligne contient l'e-mail, la source, la date de rappel et `email_sent_at`.
+- [ ] *Supabase → salon_leads* : la ligne contient l'e-mail, la source et `email_sent_at`.
 
 ## D. Formulaire de reprise (3 étapes, plusieurs pièces)
 - [ ] Sur `/salon`, « Remplir le formulaire maintenant » descend jusqu'au formulaire ; `/depot` fonctionne aussi directement (présentation et barème à gauche sur ordinateur, sous le formulaire sur téléphone).
-- [ ] Étape 1 : prénom, e-mail et téléphone obligatoires ; nom facultatif ; un numéro trop court est refusé ; l'indicatif se change (+32, +41…).
-- [ ] Étape 2 : sans type de pièce ou avec moins de 3 photos, « Continuer » est bloqué avec un message sous le champ.
+- [ ] Étape 1 · Vos pièces : sans type de pièce ou avec moins de 3 photos, « Continuer » est bloqué avec un message sous le champ.
 - [ ] 📶 Une pièce avec **3 photos** prises avec l'appareil photo : barres de progression, « ✓ Envoyée » sur chaque vignette.
 - [ ] 📶 « Ajouter une autre pièce » : deuxième pièce avec **10 photos** (sélection multiple dans la galerie) ; envoi en moins de 2 minutes ; la zone d'ajout disparaît à 10.
 - [ ] Le curseur « Note d'état » affiche le bon libellé (0–3 Usé, 4–6 Bon, 7–8 Très bon, 9–10 Comme neuf).
-- [ ] Brouillon : recharger la page à l'étape 2 → les textes sont conservés (les photos sont à rajouter).
-- [ ] Étape 3 : adresse, case de certification, « Envoyer ma demande » → page Merci (« … pour 2 pièces »).
+- [ ] Brouillon : recharger la page → retour à l'étape 1 avec les textes conservés (les photos sont à rajouter).
+- [ ] Étape 2 · Enlèvement : adresse et case de certification obligatoires.
+- [ ] Étape 3 · Vos coordonnées : prénom, e-mail et téléphone obligatoires ; nom facultatif ; un numéro trop court est refusé ; l'indicatif se change (+32, +41…). « Envoyer ma demande » → page Merci (« … pour 2 pièces »).
 - [ ] *Réglages → Barème de partage* : modifier un pourcentage, l'enregistrer, le voir sur `/depot`, puis le remettre.
 
 ## E. Outil (bureau)

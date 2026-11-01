@@ -142,7 +142,7 @@ Seule la landing du salon envoie des e-mails (lien du formulaire + invitation d'
 4. Attendez le statut **Verified** dans Resend (quelques minutes à quelques heures).
 5. *API Keys → Create API Key* : droit **Sending access**, domaine `remarq.fr`. Copiez-la dans Vercel → `RESEND_API_KEY` (Production uniquement). Ne la mettez nulle part ailleurs.
 6. `EMAIL_FROM` = `Remarq <contact@remarq.fr>`. Pour recevoir les réponses, `contact@remarq.fr` doit être une vraie boîte (ou renseignez `EMAIL_REPLY_TO` avec une adresse relevée).
-7. Redéployez, puis testez `/salon` avec votre propre adresse : vérifiez l'e-mail, l'invitation `.ics` (ouvrez-la dans votre agenda) et le lien Google Agenda. Dans Gmail, *Afficher l'original* doit indiquer **SPF : PASS** et **DKIM : PASS**.
+7. Redéployez, puis testez `/salon` avec votre propre adresse : vérifiez l'e-mail et le lien du formulaire. Dans Gmail, *Afficher l'original* doit indiquer **SPF : PASS** et **DKIM : PASS**.
 
    Contrôle depuis un terminal : `dig +short CNAME send.remarq.fr` et `dig +short CNAME rsend.remarq.fr` doivent renvoyer les valeurs ci-dessus.
 
