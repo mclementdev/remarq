@@ -7,7 +7,6 @@
 
 export const vendreContent = {
   hero: {
-    eyebrow: "Particuliers",
     title: "Vendez votre mobilier design sans effort.",
     text: "On s'occupe de tout : estimation de vos pièces, collecte à domicile, remise en valeur, stockage et vente. Vous n'avez rien à gérer, vous êtes payé à la vente.",
     checks: ["Estimation gratuite sous 48 h", "Collecte à domicile", "Paiement sous 14 jours"],
@@ -78,7 +77,7 @@ export const vendreContent = {
     eyebrow: "FAQ",
     title: "Vos questions, nos réponses.",
     items: [
-      { q: "Combien vais-je toucher ?", a: "Un pourcentage du prix de vente final, selon notre barème de partage affiché à côté du formulaire. Plus la pièce se vend cher, plus votre part est importante. Aucun frais caché." },
+      { q: "Combien vais-je toucher ?", a: "Un pourcentage du prix de vente final, précisé dans notre proposition avant toute signature. Plus la pièce se vend cher, plus votre part est importante. Aucun frais caché." },
       { q: "Comment fixez-vous le prix ?", a: "À partir de vos photos et informations, nous comparons avec les ventes récentes de pièces équivalentes. Nous vous proposons un prix de vente et un prix plancher, que nous fixons ensemble avant toute signature." },
       { q: "Quelles pièces acceptez-vous ?", a: "Du mobilier, des luminaires et des objets de designers ou de grandes maisons d'édition, vintage ou contemporains, en bon état. Voir « Ce que nous prenons » ci-dessus." },
       { q: "Qui s'occupe de l'enlèvement ?", a: "Nous. Nous venons chercher vos pièces à domicile, sur un créneau convenu avec vous. Indiquez l'étage, l'ascenseur et les difficultés d'accès dans le formulaire." },

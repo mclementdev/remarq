@@ -4,11 +4,9 @@ import { LeadForm } from "@/components/salon/LeadForm";
 import { vendreContent as c } from "@/lib/content/vendre";
 import { salonContent } from "@/lib/content/salon";
 import type { SalonSource } from "@/lib/content/salon";
-import type { ScaleRow } from "@/lib/depot/scale";
 
 type Props = {
   brands: { id: string; name: string }[];
-  scale: ScaleRow[];
   source: SalonSource | null;
   /** Sur /salon : boutons d'ancre et bloc « Recevez le lien ». `onSite` (stand, carte, flyer) le place avant le formulaire. */
   salon?: { onSite: boolean; eyebrow: string };
@@ -17,7 +15,7 @@ type Props = {
 const wrap = "mx-auto max-w-6xl px-4";
 
 /** Page « Vendre » : servie par /depot et /salon. */
-export function SellPage({ brands, scale, source, salon }: Props) {
+export function SellPage({ brands, source, salon }: Props) {
   const leadBlock = salon && source && (
     <section id="lien" aria-labelledby="lien-title" className="scroll-mt-6 py-12">
       <div className={wrap}>
@@ -36,13 +34,13 @@ export function SellPage({ brands, scale, source, salon }: Props) {
       {salon?.onSite && leadBlock}
 
       <section id="formulaire" aria-label="Formulaire de reprise" className="scroll-mt-4 py-12 sm:py-16">
-        {/* Mobile : accroche, formulaire, puis avantages et barème. Ordinateur : présentation à gauche, formulaire à droite. */}
+        {/* Mobile : accroche, formulaire, puis avantages. Ordinateur : présentation à gauche, formulaire à droite. */}
         <div className={`${wrap} grid gap-10 lg:grid-cols-[5fr_6fr] lg:grid-rows-[auto_1fr] lg:gap-x-14`}>
           <DepotIntroHeader />
           <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <DepotForm brands={brands} source={source} />
           </div>
-          <DepotIntro scale={scale} />
+          <DepotIntro />
         </div>
       </section>
 
@@ -67,7 +65,7 @@ function Hero({ salon }: { salon?: { onSite: boolean; eyebrow: string } }) {
   return (
     <header className="bg-paper-alt pb-12 pt-12 sm:pt-20">
       <div className={`${wrap} space-y-5`}>
-        <p className="section-title">{salon?.eyebrow ?? c.hero.eyebrow}</p>
+        {salon && <p className="section-title">{salon.eyebrow}</p>}
         <h1 className="text-5xl sm:text-7xl">{c.hero.title}</h1>
         <p className="max-w-xl text-sm text-ink-soft sm:text-base">{c.hero.text}</p>
         <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">

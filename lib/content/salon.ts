@@ -22,7 +22,7 @@ export const salonContent = {
   },
 
   // PROVISOIRE — la page elle-même reprend les textes de lib/content/vendre.ts ;
-  // `eyebrow` remplace « Particuliers » au-dessus du titre, `title` sert à l'image de partage.
+  // `eyebrow` s'affiche au-dessus du titre, `title` sert à l'image de partage.
   hero: {
     eyebrow: "Époqu'Auto Lyon · stand CarJager",
     title: "Vos meubles de design méritent une seconde vie",

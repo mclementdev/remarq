@@ -1,5 +1,4 @@
 import { depotContent } from "@/lib/content/depot";
-import { scaleLabels, type ScaleRow } from "@/lib/depot/scale";
 
 const c = depotContent.intro;
 
@@ -24,51 +23,27 @@ const ICONS: Record<string, React.ReactNode> = {
 export function DepotIntroHeader() {
   return (
     <div className="space-y-4">
-      <p className="section-title">{c.eyebrow}</p>
       <h2 className="text-4xl sm:text-5xl">{c.title}</h2>
       <p className="text-sm text-ink-soft sm:text-base">{c.text}</p>
     </div>
   );
 }
 
-/** Les 3 avantages et le barème de partage (réglage). */
-export function DepotIntro({ scale }: { scale: ScaleRow[] }) {
+/** Les 3 avantages. */
+export function DepotIntro() {
   return (
-    <div className="space-y-8">
-      <ul className="space-y-5">
-        {c.benefits.map((b) => (
-          <li key={b.title} className="flex gap-4">
-            <svg aria-hidden viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              {ICONS[b.icon]}
-            </svg>
-            <div>
-              <p className="font-semibold">{b.title}</p>
-              <p className="text-sm text-ink-soft">{b.text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <section aria-labelledby="bareme-title" className="border-t border-line pt-6">
-        <h3 id="bareme-title" className="mb-3 font-semibold">{c.scaleTitle}</h3>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-sm text-ink-soft">
-              <th scope="col" className="pb-2 font-normal">{c.scaleHeaders[0]}</th>
-              <th scope="col" className="pb-2 text-right font-normal">{c.scaleHeaders[1]}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scaleLabels(scale).map((r) => (
-              <tr key={r.label} className="border-t border-line-soft">
-                <td className="py-3">{r.label}</td>
-                <td className="py-3 text-right font-[family-name:var(--font-site-serif)] text-3xl">{r.percent} %</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-3 text-sm text-ink-soft">{c.scaleNote}</p>
-      </section>
-    </div>
+    <ul className="space-y-5">
+      {c.benefits.map((b) => (
+        <li key={b.title} className="flex gap-4">
+          <svg aria-hidden viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            {ICONS[b.icon]}
+          </svg>
+          <div>
+            <p className="font-semibold">{b.title}</p>
+            {b.text && <p className="text-sm text-ink-soft">{b.text}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

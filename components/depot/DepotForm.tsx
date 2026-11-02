@@ -8,7 +8,7 @@ import { StepHeader } from "./StepHeader";
 import { PieceCard } from "./PieceCard";
 import { Field, aria, ErrorText, Req } from "./Field";
 import type { PhotoItem } from "./PhotoTile";
-import { EMPTY_PICKUP, EMPTY_SELLER, emptyPiece, parseNumber, type PickupState, type PieceState, type SellerState } from "./types";
+import { EMPTY_PICKUP, EMPTY_SELLER, emptyPiece, type PickupState, type PieceState, type SellerState } from "./types";
 import { uploadDepotImage } from "@/lib/image";
 import { createLimiter } from "@/lib/limit";
 import { CERTIFICATION_TEXT, FLOOR_LABELS } from "@/lib/labels";
@@ -30,8 +30,6 @@ const piecePayload = (p: PieceState) => ({
   itemType: p.itemType || undefined,
   quantity: p.quantity === "" ? undefined : Number(p.quantity),
   description: p.description,
-  purchaseYear: p.purchaseYear,
-  originalPrice: parseNumber(p.originalPrice),
   conditionScore: p.conditionScore,
   conditionDetails: p.conditionDetails,
   photos: p.photos.filter((ph) => ph.status === "done").map((ph) => ({ path: ph.path!, thumbPath: ph.thumbPath!, slot: ph.slot })),

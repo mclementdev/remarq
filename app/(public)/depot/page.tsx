@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SellPage } from "@/components/site/SellPage";
-import { getConsignmentScale } from "@/lib/settings";
 import { SALON_SOURCES, type SalonSource } from "@/lib/content/salon";
 import { vendreContent } from "@/lib/content/vendre";
 
@@ -15,11 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function DepotPage({ searchParams }: { searchParams: Promise<{ source?: string }> }) {
   const { source } = await searchParams;
   const supabase = createAdminClient();
-  const [{ data: brands }, scale] = await Promise.all([
-    supabase.from("brands").select("id, name").eq("active", true).order("name"),
-    getConsignmentScale(supabase),
-  ]);
+  const { data: brands } = await supabase.from("brands").select("id, name").eq("active", true).order("name");
   const known = (SALON_SOURCES as readonly string[]).includes(source ?? "") ? (source as SalonSource) : null;
 
-  return <SellPage brands={brands ?? []} scale={scale} source={known} />;
+  return <SellPage brands={brands ?? []} source={known} />;
 }

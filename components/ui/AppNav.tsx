@@ -13,6 +13,9 @@ const LINKS = [
   { href: "/reglages", label: "Réglages" },
 ];
 
+/** Demandes de support (prestataire). */
+const SUPPORT_URL = "https://support.relais-app.com/demandes";
+
 export function AppNav({ firstName }: { firstName: string }) {
   const pathname = usePathname();
   return (
@@ -37,6 +40,9 @@ export function AppNav({ firstName }: { firstName: string }) {
             );
           })}
         </nav>
+        <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm whitespace-nowrap">
+          Support<span className="sr-only"> (nouvel onglet)</span>
+        </a>
         <span className="hidden text-sm text-ink-muted md:inline">{firstName}</span>
         <form action={logout}>
           <button type="submit" className="btn-ghost btn-sm">Déconnexion</button>

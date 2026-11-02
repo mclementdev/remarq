@@ -26,7 +26,7 @@ Cochez au fur et à mesure ; notez tout écart avec une capture d'écran.
 - [ ] *Supabase → salon_leads* : la ligne contient l'e-mail, la source et `email_sent_at`.
 
 ## D. Formulaire de reprise (3 étapes, plusieurs pièces)
-- [ ] Sur `/salon`, « Remplir le formulaire maintenant » descend jusqu'au formulaire ; `/depot` fonctionne aussi directement (présentation et barème à gauche sur ordinateur, sous le formulaire sur téléphone).
+- [ ] Sur `/salon`, « Remplir le formulaire maintenant » descend jusqu'au formulaire ; `/depot` fonctionne aussi directement (présentation à gauche sur ordinateur, sous le formulaire sur téléphone ; ni barème, ni « Année d'achat » / « Prix payé »).
 - [ ] Étape 1 · Vos pièces : sans type de pièce ou avec moins de 3 photos, « Continuer » est bloqué avec un message sous le champ.
 - [ ] 📶 Une pièce avec **3 photos** prises avec l'appareil photo : barres de progression, « ✓ Envoyée » sur chaque vignette.
 - [ ] 📶 « Ajouter une autre pièce » : deuxième pièce avec **10 photos** (sélection multiple dans la galerie) ; envoi en moins de 2 minutes ; la zone d'ajout disparaît à 10.

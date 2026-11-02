@@ -31,7 +31,7 @@ export function PieceCard({ index, piece: p, brandListId, errors, canRemove, onC
   const n = index + 1;
   const id = (name: string) => `piece-${index}-${name}`;
   const err = (name: string) => errors[`pieces.${index}.${name}`];
-  const text = (name: "brand" | "model" | "purchaseYear" | "originalPrice") => ({
+  const text = (name: "brand" | "model") => ({
     value: p[name],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange({ [name]: e.target.value }),
   });
@@ -76,14 +76,6 @@ export function PieceCard({ index, piece: p, brandListId, errors, canRemove, onC
           <Field id={id("description")} label="Description" required error={err("description")}>
             <textarea {...aria(id("description"), err("description"))} rows={4} placeholder={c.descriptionPlaceholder} value={p.description} onChange={(e) => onChange({ description: e.target.value })} />
           </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field id={id("purchaseYear")} label="Année d'achat" optional="approx.">
-              <input {...aria(id("purchaseYear"))} placeholder={c.yearPlaceholder} {...text("purchaseYear")} />
-            </Field>
-            <Field id={id("originalPrice")} label="Prix payé" optional="€, approx." hint={c.priceHint} error={err("originalPrice")}>
-              <input {...aria(id("originalPrice"), err("originalPrice"), `${id("originalPrice")}-hint`)} inputMode="decimal" placeholder={c.pricePlaceholder} {...text("originalPrice")} />
-            </Field>
-          </div>
         </fieldset>
 
         {/* -------------------------------------------------- État */}
