@@ -111,11 +111,12 @@ export const vendreContent = {
       {
         title: "Remarq",
         links: [
-          { label: "L'histoire", href: "/pages/qui-suis-je" },
+          { label: "L'histoire", href: "/pages/histoire" },
           { label: "Comment ça marche ?", href: "app:/depot#comment-ca-marche" },
           { label: "Les engagements", href: "/pages/engagements" },
           { label: "Vendre mes meubles", href: "app:/depot" },
           { label: "Prendre rendez-vous", href: "/pages/rendez-vous" },
+          { label: "Programme partenaires", href: "/pages/partenaires" },
         ],
       },
       {
